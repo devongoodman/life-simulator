@@ -740,7 +740,8 @@
             hostConnection: null, // Client's connection to host
             humanPlayers: [], // { odlap: string, name: string, isReady: bool, isLocal: bool, playerData: {} }
             localPlayerId: null,
-            waitingForPlayers: false
+            waitingForPlayers: false,
+            gameEndedNormally: false
         };
 
         // AI Names
@@ -2121,6 +2122,7 @@
 
         // End game
         function endGame(reason) {
+            gameState.gameEndedNormally = true;
             const modal = document.getElementById('game-over-modal');
             const title = document.getElementById('game-over-title');
             const message = document.getElementById('game-over-message');
@@ -2401,8 +2403,10 @@
                     });
 
                     conn.on('close', () => {
-                        alert('Disconnected from host');
-                        resetToMainMenu();
+                        if (!gameState.gameEndedNormally) {
+                            alert('Disconnected from host');
+                            resetToMainMenu();
+                        }
                     });
                 });
 
@@ -3117,6 +3121,7 @@
             gameState.humanPlayers = [];
             gameState.localPlayerId = null;
             gameState.waitingForPlayers = false;
+            gameState.gameEndedNormally = false;
 
             showScreen('main-menu');
             document.getElementById('join-waiting').style.display = 'none';
