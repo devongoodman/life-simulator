@@ -1,0 +1,3237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Life Simulator - Survive The Year</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+
+        .game-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            color: #00d4ff;
+            text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+        }
+
+        .week-display {
+            font-size: 1.5rem;
+            color: #ffd700;
+            margin-top: 10px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 20px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .panel h2 {
+            color: #00d4ff;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #00d4ff;
+            padding-bottom: 10px;
+        }
+
+        .stat-bar {
+            margin-bottom: 15px;
+        }
+
+        .stat-bar label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .stat-bar .bar {
+            height: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .stat-bar .bar-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+
+        .bar-fill.money { background: linear-gradient(90deg, #2ecc71, #27ae60); }
+        .bar-fill.health { background: linear-gradient(90deg, #e74c3c, #c0392b); }
+        .bar-fill.happiness { background: linear-gradient(90deg, #f39c12, #e67e22); }
+        .bar-fill.energy { background: linear-gradient(90deg, #3498db, #2980b9); }
+        .bar-fill.skill { background: linear-gradient(90deg, #9b59b6, #8e44ad); }
+
+        .money-display {
+            font-size: 2rem;
+            color: #2ecc71;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .choices-panel {
+            min-height: 400px;
+        }
+
+        .choice-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .choice-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .choice-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .choice-btn:disabled {
+            background: #555;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .choice-btn .choice-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+
+        .choice-btn .choice-desc {
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+
+        .competitor {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .competitor.player {
+            border: 2px solid #00d4ff;
+        }
+
+        .competitor.dead {
+            opacity: 0.5;
+            text-decoration: line-through;
+        }
+
+        .competitor .name {
+            font-weight: bold;
+        }
+
+        .competitor .money {
+            color: #2ecc71;
+        }
+
+        .event-log {
+            max-height: 150px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .event-log p {
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.85rem;
+        }
+
+        .event-log p:last-child {
+            border-bottom: none;
+        }
+
+        .event-positive { color: #2ecc71; }
+        .event-negative { color: #e74c3c; }
+        .event-neutral { color: #f39c12; }
+
+        .next-week-btn {
+            width: 100%;
+            padding: 20px;
+            font-size: 1.3rem;
+            background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .next-week-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.4);
+        }
+
+        .next-week-btn:disabled {
+            background: #555;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 600px;
+            border: 2px solid #00d4ff;
+        }
+
+        .modal-content h2 {
+            color: #ffd700;
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+
+        .modal-content .final-standings {
+            text-align: left;
+            margin: 20px 0;
+        }
+
+        .modal-content .standing-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+
+        .modal-content .standing-main {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+        }
+
+        .modal-content .standing-breakdown {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: #aaa;
+            margin-top: 5px;
+            padding-top: 5px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .modal-content .total-money {
+            color: #2ecc71;
+        }
+
+        .modal-content .standing-item.winner {
+            background: rgba(255, 215, 0, 0.3);
+            border: 2px solid #ffd700;
+        }
+
+        .modal-content .standing-item.player {
+            border: 2px solid #00d4ff;
+        }
+
+        .play-again-btn {
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .start-modal .modal-content {
+            max-width: 500px;
+        }
+
+        .start-modal input {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.2rem;
+            border-radius: 10px;
+            border: none;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .start-btn {
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        .start-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .mode-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .mode-btn {
+            padding: 20px 30px;
+            font-size: 1.1rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .mode-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .mode-btn.secondary {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+        }
+
+        .lobby-screen, .join-screen {
+            display: none;
+        }
+
+        .lobby-screen.active, .join-screen.active {
+            display: block;
+        }
+
+        .room-code-display {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #ffd700;
+            letter-spacing: 8px;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+        }
+
+        .player-list {
+            text-align: left;
+            margin: 20px 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .player-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            margin: 8px 0;
+        }
+
+        .player-item.host {
+            border: 2px solid #ffd700;
+        }
+
+        .player-item.local {
+            border: 2px solid #00d4ff;
+        }
+
+        .player-item .player-name {
+            font-weight: bold;
+        }
+
+        .player-item .player-tag {
+            font-size: 0.8rem;
+            padding: 3px 8px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .player-item .player-tag.host-tag {
+            background: #ffd700;
+            color: #000;
+        }
+
+        .player-item .player-tag.you-tag {
+            background: #00d4ff;
+            color: #000;
+        }
+
+        .player-count {
+            color: #aaa;
+            margin: 10px 0;
+        }
+
+        .waiting-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 15px 0;
+            color: #f39c12;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #f39c12;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .room-code-input {
+            font-size: 1.5rem !important;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            margin: 10px 0;
+        }
+
+        .ready-status {
+            display: none;
+            background: rgba(46, 204, 113, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+
+        .ready-status.active {
+            display: block;
+        }
+
+        .ready-player {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .ready-player .status {
+            color: #f39c12;
+        }
+
+        .ready-player .status.ready {
+            color: #2ecc71;
+        }
+
+        .back-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            margin-top: 15px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .job-indicator {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .job-indicator .job-title {
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .investment-indicator {
+            background: rgba(46, 204, 113, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .insurance-toggle {
+            background: rgba(52, 152, 219, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .toggle-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .toggle-label input {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .toggle-text {
+            font-size: 0.9rem;
+        }
+
+        .status-warnings {
+            margin-bottom: 10px;
+        }
+
+        .status-warning {
+            background: rgba(231, 76, 60, 0.3);
+            padding: 8px;
+            border-radius: 6px;
+            margin-bottom: 5px;
+            font-size: 0.8rem;
+            border-left: 3px solid #e74c3c;
+        }
+
+        .status-warning.burnout {
+            background: rgba(243, 156, 18, 0.3);
+            border-left-color: #f39c12;
+        }
+
+        .status-warning.isolation {
+            background: rgba(155, 89, 182, 0.3);
+            border-left-color: #9b59b6;
+        }
+
+        @media (max-width: 900px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <header>
+            <h1>💰 Life Simulator 💰</h1>
+            <div class="week-display">Week <span id="current-week">1</span> of 52</div>
+        </header>
+
+        <div class="main-content">
+            <div class="panel stats-panel">
+                <h2>Your Stats</h2>
+                <div class="money-display">$<span id="player-money">1000</span></div>
+
+                <div class="job-indicator">
+                    Job: <span class="job-title" id="current-job">Unemployed</span>
+                    <div id="job-salary"></div>
+                </div>
+
+                <div class="stat-bar">
+                    <label><span>Health</span><span id="health-val">100</span>%</label>
+                    <div class="bar"><div class="bar-fill health" id="health-bar" style="width: 100%"></div></div>
+                </div>
+
+                <div class="stat-bar">
+                    <label><span>Happiness</span><span id="happiness-val">70</span>%</label>
+                    <div class="bar"><div class="bar-fill happiness" id="happiness-bar" style="width: 70%"></div></div>
+                </div>
+
+                <div class="stat-bar">
+                    <label><span>Energy</span><span id="energy-val">100</span>%</label>
+                    <div class="bar"><div class="bar-fill energy" id="energy-bar" style="width: 100%"></div></div>
+                </div>
+
+                <div class="stat-bar">
+                    <label><span>Skills</span><span id="skill-val">10</span>%</label>
+                    <div class="bar"><div class="bar-fill skill" id="skill-bar" style="width: 10%"></div></div>
+                </div>
+
+                <div class="investment-indicator" id="investment-info" style="display: none;">
+                    <strong>Investments:</strong> $<span id="investment-amount">0</span>
+                </div>
+
+                <div class="insurance-toggle">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="insurance-checkbox">
+                        <span class="toggle-text">Health Insurance ($50/week)</span>
+                    </label>
+                </div>
+
+                <div class="status-warnings" id="status-warnings"></div>
+
+                <div class="event-log" id="event-log">
+                    <p class="event-neutral">Welcome! Make choices to survive the year.</p>
+                </div>
+            </div>
+
+            <div class="panel choices-panel">
+                <h2>Weekly Choices</h2>
+                <div class="choice-grid" id="choices-container">
+                    <!-- Choices will be populated here -->
+                </div>
+                <button class="next-week-btn" id="next-week-btn">End Week →</button>
+            </div>
+
+            <div class="panel competitors-panel">
+                <h2>Leaderboard</h2>
+                <div id="competitors-list">
+                    <!-- Competitors will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Start Modal -->
+    <div class="modal start-modal active" id="start-modal">
+        <div class="modal-content">
+            <!-- Main Menu -->
+            <div id="main-menu">
+                <h2>🎮 Life Simulator</h2>
+                <p>Compete to end the year with the most money!</p>
+                <p>Everyone starts with $1000. Make smart choices!</p>
+                <input type="text" id="player-name-input" placeholder="Enter your name" maxlength="15">
+                <div class="mode-buttons">
+                    <button class="mode-btn" id="single-player-btn">👤 Single Player</button>
+                    <button class="mode-btn secondary" id="multiplayer-btn">👥 Multiplayer</button>
+                </div>
+            </div>
+
+            <!-- Multiplayer Menu -->
+            <div id="multiplayer-menu" style="display: none;">
+                <h2>👥 Multiplayer</h2>
+                <p>Play with friends online!</p>
+                <div class="mode-buttons">
+                    <button class="mode-btn" id="create-room-btn">🏠 Create Room</button>
+                    <button class="mode-btn secondary" id="join-room-btn">🚪 Join Room</button>
+                </div>
+                <button class="back-btn" id="back-to-main">← Back</button>
+            </div>
+
+            <!-- Create Room / Lobby -->
+            <div id="lobby-screen" class="lobby-screen">
+                <h2>🏠 Game Lobby</h2>
+                <p>Share this code with friends:</p>
+                <div class="room-code-display" id="room-code-display">------</div>
+                <div class="player-count">Players: <span id="player-count">1</span>/4</div>
+                <div class="player-list" id="lobby-player-list"></div>
+                <div class="waiting-indicator" id="waiting-indicator">
+                    <div class="spinner"></div>
+                    <span>Waiting for players...</span>
+                </div>
+                <button class="start-btn" id="start-multiplayer-btn">Start Game</button>
+                <button class="back-btn" id="leave-lobby">← Leave Lobby</button>
+            </div>
+
+            <!-- Join Room -->
+            <div id="join-screen" class="join-screen">
+                <h2>🚪 Join Room</h2>
+                <p>Enter the room code:</p>
+                <input type="text" id="room-code-input" class="room-code-input" placeholder="ABC123" maxlength="6">
+                <div class="error-message" id="join-error" style="display: none;"></div>
+                <div class="waiting-indicator" id="join-waiting" style="display: none;">
+                    <div class="spinner"></div>
+                    <span>Connecting...</span>
+                </div>
+                <br>
+                <button class="start-btn" id="join-btn">Join</button>
+                <button class="back-btn" id="back-to-multi">← Back</button>
+            </div>
+
+            <!-- Waiting in Lobby (for clients) -->
+            <div id="client-lobby" style="display: none;">
+                <h2>🎮 Game Lobby</h2>
+                <p>Room Code: <span class="room-code-display" id="client-room-code" style="display: inline; font-size: 1.5rem; padding: 5px 15px;">------</span></p>
+                <div class="player-count">Players: <span id="client-player-count">1</span>/4</div>
+                <div class="player-list" id="client-player-list"></div>
+                <div class="waiting-indicator">
+                    <div class="spinner"></div>
+                    <span>Waiting for host to start...</span>
+                </div>
+                <button class="back-btn" id="leave-client-lobby">← Leave Lobby</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div class="modal" id="game-over-modal">
+        <div class="modal-content">
+            <h2 id="game-over-title">Game Over!</h2>
+            <p id="game-over-message"></p>
+            <div class="final-standings" id="final-standings"></div>
+            <button class="play-again-btn" id="play-again-btn">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        let gameState = {
+            week: 1,
+            player: null,
+            competitors: [],
+            choicesMadeThisWeek: [],
+            // Multiplayer state
+            gameMode: 'single', // 'single', 'multi-host', 'multi-client'
+            roomCode: null,
+            peer: null,
+            connections: [], // Host's connections to clients
+            hostConnection: null, // Client's connection to host
+            humanPlayers: [], // { odlap: string, name: string, isReady: bool, isLocal: bool, playerData: {} }
+            localPlayerId: null,
+            waitingForPlayers: false
+        };
+
+        // AI Names
+        const aiNames = ['Marcus', 'Elena', 'Jake', 'Sophia'];
+
+        // Generate random room code
+        function generateRoomCode() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let code = '';
+            for (let i = 0; i < 6; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        }
+
+        // Generate unique player ID
+        function generatePlayerId() {
+            return 'player-' + Math.random().toString(36).substr(2, 9);
+        }
+
+        // Companies with job ladders
+        const companies = [
+            {
+                name: 'BurgerBarn',
+                industry: 'Fast Food',
+                color: '#e74c3c',
+                positions: [
+                    { title: 'Cashier', salary: 180, energyCost: 15, requirement: 0 },
+                    { title: 'Cook', salary: 220, energyCost: 18, requirement: 10 },
+                    { title: 'Shift Lead', salary: 300, energyCost: 20, requirement: 20 },
+                    { title: 'Assistant Manager', salary: 420, energyCost: 25, requirement: 35 },
+                    { title: 'Store Manager', salary: 600, energyCost: 30, requirement: 50 }
+                ]
+            },
+            {
+                name: 'MegaMart',
+                industry: 'Retail',
+                color: '#3498db',
+                positions: [
+                    { title: 'Stock Clerk', salary: 190, energyCost: 18, requirement: 0 },
+                    { title: 'Cashier', salary: 210, energyCost: 15, requirement: 5 },
+                    { title: 'Sales Associate', salary: 280, energyCost: 16, requirement: 15 },
+                    { title: 'Department Lead', salary: 400, energyCost: 22, requirement: 30 },
+                    { title: 'Store Manager', salary: 650, energyCost: 28, requirement: 50 }
+                ]
+            },
+            {
+                name: 'TechNova Solutions',
+                industry: 'Tech',
+                color: '#9b59b6',
+                positions: [
+                    { title: 'IT Intern', salary: 300, energyCost: 15, requirement: 15 },
+                    { title: 'Junior Developer', salary: 500, energyCost: 20, requirement: 25 },
+                    { title: 'Software Developer', salary: 750, energyCost: 25, requirement: 40 },
+                    { title: 'Senior Developer', salary: 1100, energyCost: 30, requirement: 60 },
+                    { title: 'Tech Lead', salary: 1500, energyCost: 35, requirement: 80 }
+                ]
+            },
+            {
+                name: 'FinanceFirst Bank',
+                industry: 'Finance',
+                color: '#27ae60',
+                positions: [
+                    { title: 'Bank Teller', salary: 280, energyCost: 15, requirement: 10 },
+                    { title: 'Account Officer', salary: 420, energyCost: 20, requirement: 25 },
+                    { title: 'Financial Analyst', salary: 650, energyCost: 25, requirement: 40 },
+                    { title: 'Senior Analyst', salary: 900, energyCost: 30, requirement: 55 },
+                    { title: 'Branch Manager', salary: 1200, energyCost: 32, requirement: 70 }
+                ]
+            },
+            {
+                name: 'CityCare Hospital',
+                industry: 'Healthcare',
+                color: '#e91e63',
+                positions: [
+                    { title: 'Receptionist', salary: 250, energyCost: 15, requirement: 5 },
+                    { title: 'Medical Assistant', salary: 380, energyCost: 22, requirement: 20 },
+                    { title: 'Nurse', salary: 600, energyCost: 30, requirement: 40 },
+                    { title: 'Senior Nurse', salary: 800, energyCost: 32, requirement: 55 },
+                    { title: 'Nurse Manager', salary: 1050, energyCost: 35, requirement: 70 }
+                ]
+            },
+            {
+                name: 'BuildRight Construction',
+                industry: 'Construction',
+                color: '#f39c12',
+                positions: [
+                    { title: 'Laborer', salary: 280, energyCost: 25, requirement: 0 },
+                    { title: 'Apprentice', salary: 350, energyCost: 25, requirement: 10 },
+                    { title: 'Skilled Worker', salary: 480, energyCost: 28, requirement: 25 },
+                    { title: 'Foreman', salary: 650, energyCost: 26, requirement: 40 },
+                    { title: 'Site Manager', salary: 900, energyCost: 24, requirement: 60 }
+                ]
+            },
+            {
+                name: 'GreenLeaf Cafe',
+                industry: 'Food Service',
+                color: '#2ecc71',
+                positions: [
+                    { title: 'Dishwasher', salary: 160, energyCost: 18, requirement: 0 },
+                    { title: 'Barista', salary: 220, energyCost: 15, requirement: 5 },
+                    { title: 'Line Cook', salary: 300, energyCost: 20, requirement: 15 },
+                    { title: 'Head Chef', salary: 500, energyCost: 25, requirement: 35 },
+                    { title: 'Restaurant Manager', salary: 700, energyCost: 28, requirement: 50 }
+                ]
+            },
+            {
+                name: 'Swift Logistics',
+                industry: 'Shipping',
+                color: '#00bcd4',
+                positions: [
+                    { title: 'Package Handler', salary: 240, energyCost: 22, requirement: 0 },
+                    { title: 'Delivery Driver', salary: 320, energyCost: 20, requirement: 10 },
+                    { title: 'Route Supervisor', salary: 450, energyCost: 22, requirement: 25 },
+                    { title: 'Logistics Coordinator', salary: 600, energyCost: 24, requirement: 40 },
+                    { title: 'Operations Manager', salary: 850, energyCost: 28, requirement: 60 }
+                ]
+            },
+            {
+                name: 'Prestige Law Firm',
+                industry: 'Legal',
+                color: '#795548',
+                positions: [
+                    { title: 'File Clerk', salary: 260, energyCost: 14, requirement: 10 },
+                    { title: 'Paralegal', salary: 450, energyCost: 20, requirement: 30 },
+                    { title: 'Legal Assistant', salary: 600, energyCost: 24, requirement: 45 },
+                    { title: 'Associate Attorney', salary: 950, energyCost: 35, requirement: 65 },
+                    { title: 'Senior Partner', salary: 1600, energyCost: 40, requirement: 85 }
+                ]
+            },
+            {
+                name: 'Starlight Entertainment',
+                industry: 'Entertainment',
+                color: '#ff9800',
+                positions: [
+                    { title: 'Ticket Booth', salary: 170, energyCost: 12, requirement: 0 },
+                    { title: 'Event Staff', salary: 230, energyCost: 18, requirement: 5 },
+                    { title: 'Stage Technician', salary: 380, energyCost: 22, requirement: 20 },
+                    { title: 'Production Assistant', salary: 520, energyCost: 25, requirement: 35 },
+                    { title: 'Event Director', salary: 800, energyCost: 30, requirement: 55 }
+                ]
+            }
+        ];
+
+        // Unemployed state
+        const unemployed = { company: null, position: null, title: 'Unemployed', salary: 0, energyCost: 0, requirement: 0 };
+
+        // Random events
+        const randomEvents = [
+            { text: 'You found $50 on the street!', moneyChange: 50, type: 'positive' },
+            { text: 'Car broke down. Repairs cost $150.', moneyChange: -150, type: 'negative' },
+            { text: 'Got a tax refund of $200!', moneyChange: 200, type: 'positive' },
+            { text: 'Medical bill arrived: $300.', moneyChange: -300, type: 'negative' },
+            { text: 'Won $100 in a raffle!', moneyChange: 100, type: 'positive' },
+            { text: 'Phone screen cracked. $80 to fix.', moneyChange: -80, type: 'negative' },
+            { text: 'Birthday gift from family: $150!', moneyChange: 150, type: 'positive' },
+            { text: 'Parking ticket: $60.', moneyChange: -60, type: 'negative' },
+            { text: 'Freelance gig paid $250!', moneyChange: 250, type: 'positive' },
+            { text: 'Utility bill was higher than expected: $100.', moneyChange: -100, type: 'negative' },
+            { text: 'Sold old stuff online for $120!', moneyChange: 120, type: 'positive' },
+            { text: 'Had to help a friend financially: $200.', moneyChange: -200, type: 'negative' }
+        ];
+
+        // Create a person (player or AI)
+        function createPerson(name, isPlayer = false) {
+            return {
+                name: name,
+                money: 1000,
+                health: 100,
+                happiness: 70,
+                energy: 100,
+                skills: 10,
+                job: { ...unemployed },
+                investments: 0,
+                isPlayer: isPlayer,
+                isDead: false,
+                weeksSinceSocialized: 0,
+                consecutiveWorkWeeks: 0,
+                hasHealthInsurance: false,
+                isBurnedOut: false,
+                weeksSinceStudied: 0,
+                weeksSinceDoctor: 0,
+                moneyAtStartOfWeek: 1000,
+                illness: null, // null, 'mild', 'moderate', 'severe', 'critical'
+                illnessWeeks: 0
+            };
+        }
+
+        // Illness effects
+        const illnessEffects = {
+            mild: {
+                name: 'Mild Cold',
+                workEnergyMult: 1.3,
+                workSalaryMult: 0.9,
+                restRecoveryMult: 0.8,
+                exerciseDisabled: false,
+                exerciseHealthMult: 0.7,
+                happinessDecayMult: 1.3,
+                healthDecayExtra: 2,
+                description: 'Runny nose, slight fatigue'
+            },
+            moderate: {
+                name: 'Flu',
+                workEnergyMult: 1.6,
+                workSalaryMult: 0.75,
+                restRecoveryMult: 0.6,
+                exerciseDisabled: false,
+                exerciseHealthMult: 0.4,
+                happinessDecayMult: 1.6,
+                healthDecayExtra: 4,
+                description: 'Fever, body aches, exhaustion'
+            },
+            severe: {
+                name: 'Pneumonia',
+                workEnergyMult: 2.5,
+                workSalaryMult: 0.5,
+                restRecoveryMult: 0.3,
+                exerciseDisabled: true,
+                exerciseHealthMult: 0,
+                happinessDecayMult: 2,
+                healthDecayExtra: 8,
+                description: 'Severe breathing problems, bedridden'
+            },
+            critical: {
+                name: 'Critical Condition',
+                workEnergyMult: 999, // Can't work
+                workSalaryMult: 0,
+                restRecoveryMult: 0.1,
+                exerciseDisabled: true,
+                exerciseHealthMult: 0,
+                happinessDecayMult: 3,
+                healthDecayExtra: 15,
+                description: 'Life-threatening, need immediate care'
+            }
+        };
+
+        // Get job display name
+        function getJobDisplay(job) {
+            if (!job.company) return 'Unemployed';
+            return `${job.title} at ${job.company}`;
+        }
+
+        // Get current position index in company
+        function getPositionIndex(job) {
+            if (!job.company) return -1;
+            const company = companies.find(c => c.name === job.company);
+            if (!company) return -1;
+            return company.positions.findIndex(p => p.title === job.title);
+        }
+
+        // Initialize game
+        function initGame(playerName) {
+            gameState.week = 1;
+            gameState.player = createPerson(playerName, true);
+            gameState.competitors = aiNames.map(name => createPerson(name));
+            gameState.choicesMadeThisWeek = [];
+
+            // Reset the event log
+            const eventLog = document.getElementById('event-log');
+            eventLog.innerHTML = '<p class="event-neutral">Welcome! Make choices to survive the year.</p>';
+
+            // Reset status warnings
+            document.getElementById('status-warnings').innerHTML = '';
+
+            // Reset insurance checkbox
+            document.getElementById('insurance-checkbox').checked = false;
+
+            updateUI();
+            renderChoices();
+            document.getElementById('start-modal').classList.remove('active');
+        }
+
+        // Get all participants sorted by money
+        function getAllParticipants() {
+            const all = [gameState.player, ...gameState.competitors].filter(p => !p.isDead);
+            return all.sort((a, b) => b.money - a.money);
+        }
+
+        // Update UI
+        function updateUI() {
+            const player = gameState.player;
+
+            document.getElementById('current-week').textContent = gameState.week;
+            document.getElementById('player-money').textContent = Math.floor(player.money);
+            document.getElementById('current-job').textContent = getJobDisplay(player.job);
+            document.getElementById('job-salary').textContent = player.job.salary > 0 ? `$${player.job.salary}/week` : '';
+
+            document.getElementById('health-val').textContent = Math.floor(player.health);
+            document.getElementById('health-bar').style.width = player.health + '%';
+
+            document.getElementById('happiness-val').textContent = Math.floor(player.happiness);
+            document.getElementById('happiness-bar').style.width = player.happiness + '%';
+
+            document.getElementById('energy-val').textContent = Math.floor(player.energy);
+            document.getElementById('energy-bar').style.width = player.energy + '%';
+
+            document.getElementById('skill-val').textContent = Math.floor(player.skills);
+            document.getElementById('skill-bar').style.width = player.skills + '%';
+
+            if (player.investments > 0) {
+                document.getElementById('investment-info').style.display = 'block';
+                document.getElementById('investment-amount').textContent = Math.floor(player.investments);
+            } else {
+                document.getElementById('investment-info').style.display = 'none';
+            }
+
+            // Update insurance checkbox
+            document.getElementById('insurance-checkbox').checked = player.hasHealthInsurance;
+
+            // Update status warnings
+            updateStatusWarnings();
+
+            // Update leaderboard
+            updateLeaderboard();
+        }
+
+        // Update status warnings display
+        function updateStatusWarnings() {
+            const player = gameState.player;
+            const container = document.getElementById('status-warnings');
+            let warnings = [];
+
+            if (player.isBurnedOut) {
+                warnings.push({ text: 'BURNED OUT - Energy capped at 50', type: 'burnout' });
+            }
+
+            if (player.weeksSinceSocialized >= 6) {
+                warnings.push({ text: 'Severely lonely - Happiness decaying 3x faster', type: 'isolation' });
+            } else if (player.weeksSinceSocialized >= 3) {
+                warnings.push({ text: 'Feeling isolated - Happiness decaying faster', type: 'isolation' });
+            }
+
+            if (player.consecutiveWorkWeeks >= 4) {
+                warnings.push({ text: `Overworked (${player.consecutiveWorkWeeks} weeks) - Burnout imminent!`, type: 'burnout' });
+            }
+
+            if (player.weeksSinceStudied >= 8) {
+                warnings.push({ text: 'Skills getting rusty! (-3/week)', type: '' });
+            } else if (player.weeksSinceStudied >= 5) {
+                warnings.push({ text: 'Haven\'t studied in a while (-1 skill/week)', type: '' });
+            }
+
+            // Illness warnings (most important)
+            if (player.illness) {
+                const illnessInfo = illnessEffects[player.illness];
+                const severity = player.illness === 'critical' ? 'CRITICAL' :
+                                player.illness === 'severe' ? 'SEVERE' :
+                                player.illness === 'moderate' ? 'WARNING' : 'SICK';
+                warnings.unshift({
+                    text: `${severity}: ${illnessInfo.name} - ${illnessInfo.description}`,
+                    type: player.illness === 'critical' || player.illness === 'severe' ? '' : 'burnout'
+                });
+            }
+
+            if (player.weeksSinceDoctor >= 10) {
+                warnings.push({ text: 'DANGER: High risk of illness! See doctor!', type: '' });
+            } else if (player.weeksSinceDoctor >= 7) {
+                warnings.push({ text: 'Health at risk - see a doctor soon!', type: '' });
+            } else if (player.weeksSinceDoctor >= 5) {
+                warnings.push({ text: 'Should schedule a checkup', type: 'burnout' });
+            }
+
+            // Count low stats for stress spiral
+            let lowStats = 0;
+            if (player.health < 30) lowStats++;
+            if (player.happiness < 30) lowStats++;
+            if (player.energy < 30) lowStats++;
+            if (lowStats >= 2) {
+                warnings.push({ text: 'STRESS SPIRAL - Everything decaying faster!', type: '' });
+            }
+
+            if (player.health < 20) {
+                warnings.push({ text: 'Too sick to work!', type: '' });
+            } else if (player.health < 40) {
+                warnings.push({ text: 'Illness making work exhausting (+50% energy cost)', type: '' });
+            }
+
+            container.innerHTML = warnings.map(w =>
+                `<div class="status-warning ${w.type}">${w.text}</div>`
+            ).join('');
+        }
+
+        // Update leaderboard
+        function updateLeaderboard() {
+            const container = document.getElementById('competitors-list');
+            const participants = getAllParticipants();
+
+            container.innerHTML = participants.map((p, index) => {
+                let label = '';
+                if (p.isPlayer) {
+                    label = '(You)';
+                } else if (gameState.gameMode !== 'single') {
+                    if (p.isAI) {
+                        label = '(AI)';
+                    } else if (p.isHuman || p.odlap) {
+                        label = '(Human)';
+                    }
+                }
+
+                const deadLabel = p.isDead ? ' 💀' : '';
+
+                return `
+                    <div class="competitor ${p.isPlayer ? 'player' : ''} ${p.isDead ? 'dead' : ''}">
+                        <span class="name">${index + 1}. ${p.name} ${label}${deadLabel}</span>
+                        <span class="money">$${Math.floor(p.money)}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Log event
+        function logEvent(message, type = 'neutral') {
+            const log = document.getElementById('event-log');
+            const p = document.createElement('p');
+            p.className = `event-${type}`;
+            p.textContent = `Week ${gameState.week}: ${message}`;
+            log.insertBefore(p, log.firstChild);
+
+            // Keep only last 20 events
+            while (log.children.length > 20) {
+                log.removeChild(log.lastChild);
+            }
+        }
+
+        // Render choices
+        function renderChoices() {
+            const player = gameState.player;
+            const container = document.getElementById('choices-container');
+
+            // Get illness effects if sick
+            const illness = player.illness ? illnessEffects[player.illness] : null;
+
+            // Calculate effective energy cost for work based on health and illness
+            let workEnergyCost = player.job.energyCost;
+            if (player.health < 40 && player.health >= 20) {
+                workEnergyCost = Math.ceil(player.job.energyCost * 1.5);
+            }
+            if (illness) {
+                workEnergyCost = Math.ceil(workEnergyCost * illness.workEnergyMult);
+            }
+
+            // Calculate effective salary based on energy and illness
+            let effectiveSalary = player.job.salary;
+            let salaryPenalty = '';
+            if (illness) {
+                effectiveSalary = Math.floor(effectiveSalary * illness.workSalaryMult);
+                salaryPenalty = ` (${Math.floor(illness.workSalaryMult * 100)}% - ${illness.name})`;
+            }
+            if (player.energy < 20) {
+                effectiveSalary = Math.floor(effectiveSalary * 0.5);
+                salaryPenalty = ' (50% - exhausted)';
+            } else if (player.energy < 40) {
+                effectiveSalary = Math.floor(effectiveSalary * 0.75);
+                salaryPenalty = salaryPenalty || ' (75% - tired)';
+            }
+
+            // Can't work if critically ill
+            const tooSickToWork = illness && illness.workEnergyMult >= 999;
+
+            const choices = [
+                {
+                    id: 'work',
+                    title: '💼 Work',
+                    desc: tooSickToWork ? 'Too sick to work!' : `Earn $${effectiveSalary}${salaryPenalty} (costs ${workEnergyCost} energy)`,
+                    disabled: player.job.salary === 0 || player.energy < workEnergyCost || player.health < 20 || player.isBurnedOut || tooSickToWork,
+                    action: () => {
+                        player.money += effectiveSalary;
+                        player.energy -= workEnergyCost;
+                        player.happiness -= 5;
+                        player.consecutiveWorkWeeks++;
+                        if (effectiveSalary < player.job.salary) {
+                            logEvent(`Earned $${effectiveSalary} (reduced due to exhaustion).`, 'neutral');
+                        } else {
+                            logEvent(`Earned $${player.job.salary} from work.`, 'positive');
+                        }
+                    }
+                },
+                {
+                    id: 'rest',
+                    title: '😴 Rest',
+                    desc: illness
+                        ? `Restore ${Math.floor(30 * illness.restRecoveryMult)} energy, +${Math.floor(10 * illness.restRecoveryMult)} health (${illness.name})`
+                        : 'Restore 30 energy, +10 health, reset work streak',
+                    disabled: false,
+                    action: () => {
+                        const restMult = illness ? illness.restRecoveryMult : 1;
+                        const energyGain = Math.floor(30 * restMult);
+                        const healthGain = Math.floor(10 * restMult);
+                        player.energy = Math.min(100, player.energy + energyGain);
+                        player.health = Math.min(100, player.health + healthGain);
+                        player.consecutiveWorkWeeks = 0;
+                        player.isBurnedOut = false;
+                        if (illness) {
+                            logEvent(`Rested but ${illness.name} limited recovery. +${energyGain} energy, +${healthGain} health.`, 'neutral');
+                        } else {
+                            logEvent('Rested and recovered energy.', 'neutral');
+                        }
+                    }
+                },
+                {
+                    id: 'study',
+                    title: '📚 Study',
+                    desc: `+${player.happiness < 20 ? 2 : player.happiness < 40 ? 4 : 8} skills (costs 20 energy, $50)${player.happiness < 40 ? ' - unhappy' : ''}`,
+                    disabled: player.energy < 20 || player.money < 50,
+                    action: () => {
+                        let skillGain = 8;
+                        if (player.happiness < 20) {
+                            skillGain = 2;
+                            logEvent('Hard to focus when so unhappy. +2 skills.', 'neutral');
+                        } else if (player.happiness < 40) {
+                            skillGain = 4;
+                            logEvent('Unhappiness made it hard to concentrate. +4 skills.', 'neutral');
+                        } else {
+                            logEvent('Studied and improved skills. +8 skills.', 'positive');
+                        }
+                        player.skills = Math.min(100, player.skills + skillGain);
+                        player.energy -= 20;
+                        player.money -= 50;
+                        player.weeksSinceStudied = 0;
+                    }
+                },
+                {
+                    id: 'exercise',
+                    title: '🏃 Exercise',
+                    desc: (illness && illness.exerciseDisabled)
+                        ? `Too sick to exercise! (${illness.name})`
+                        : illness
+                            ? `+${Math.floor(15 * illness.exerciseHealthMult)} health, +5 happiness (${illness.name})`
+                            : '+15 health, +5 happiness (costs 15 energy)',
+                    disabled: player.energy < 15 || (illness && illness.exerciseDisabled),
+                    action: () => {
+                        const healthMult = illness ? illness.exerciseHealthMult : 1;
+                        const healthGain = Math.floor(15 * healthMult);
+                        player.health = Math.min(100, player.health + healthGain);
+                        player.happiness = Math.min(100, player.happiness + 5);
+                        player.energy -= 15;
+                        player.consecutiveWorkWeeks = 0;
+                        player.isBurnedOut = false;
+                        if (illness) {
+                            logEvent(`Exercised while sick. Only +${healthGain} health.`, 'neutral');
+                        } else {
+                            logEvent('Exercised and improved health.', 'positive');
+                        }
+                    }
+                },
+                {
+                    id: 'socialize',
+                    title: '🎉 Socialize',
+                    desc: '+20 happiness (costs 10 energy, $30)',
+                    disabled: player.energy < 10 || player.money < 30,
+                    action: () => {
+                        player.happiness = Math.min(100, player.happiness + 20);
+                        player.energy -= 10;
+                        player.money -= 30;
+                        player.weeksSinceSocialized = 0;
+                        logEvent('Had fun with friends! Loneliness reset.', 'positive');
+                    }
+                },
+                {
+                    id: 'gamble',
+                    title: '🎰 Gamble',
+                    desc: 'Risk $100 for a chance to win big!',
+                    disabled: player.money < 100,
+                    action: () => {
+                        player.money -= 100;
+                        const roll = Math.random();
+                        if (roll < 0.4) {
+                            logEvent('Lost $100 gambling...', 'negative');
+                        } else if (roll < 0.75) {
+                            player.money += 200;
+                            logEvent('Won $200 gambling!', 'positive');
+                        } else if (roll < 0.9) {
+                            player.money += 350;
+                            logEvent('Big win! Got $350!', 'positive');
+                        } else {
+                            player.money += 600;
+                            logEvent('JACKPOT! Won $600!', 'positive');
+                        }
+                    }
+                },
+                {
+                    id: 'invest',
+                    title: '📈 Invest',
+                    desc: 'Invest $200 (grows 5-15% weekly)',
+                    disabled: player.money < 200,
+                    action: () => {
+                        player.money -= 200;
+                        player.investments += 200;
+                        logEvent('Invested $200.', 'neutral');
+                    }
+                },
+                {
+                    id: 'withdraw',
+                    title: '💵 Withdraw',
+                    desc: 'Cash out investments',
+                    disabled: player.investments < 50,
+                    action: () => {
+                        player.money += player.investments;
+                        logEvent(`Withdrew $${Math.floor(player.investments)} from investments.`, 'positive');
+                        player.investments = 0;
+                    }
+                },
+                {
+                    id: 'job-search',
+                    title: '🔍 Job Search',
+                    desc: `Look for a job (${Math.floor(60 * player.energy / 100)}% chance)`,
+                    disabled: player.energy < 10,
+                    action: () => {
+                        player.energy -= 10;
+
+                        // Find all available positions across all companies
+                        let availablePositions = [];
+                        companies.forEach(company => {
+                            company.positions.forEach((pos, index) => {
+                                // Can apply if: skills meet requirement AND (unemployed OR better salary OR same company promotion)
+                                const meetsRequirement = player.skills >= pos.requirement;
+                                const isBetterPay = pos.salary > player.job.salary;
+                                const isPromotion = player.job.company === company.name &&
+                                    index > getPositionIndex(player.job);
+
+                                if (meetsRequirement && (isBetterPay || isPromotion || !player.job.company)) {
+                                    availablePositions.push({
+                                        company: company.name,
+                                        industry: company.industry,
+                                        ...pos
+                                    });
+                                }
+                            });
+                        });
+
+                        if (availablePositions.length > 0) {
+                            const newJob = availablePositions[Math.floor(Math.random() * availablePositions.length)];
+                            const hireChance = 0.6 * (player.energy / 100);
+
+                            if (Math.random() < hireChance) {
+                                const isPromotion = player.job.company === newJob.company;
+                                player.job = { ...newJob };
+                                if (isPromotion) {
+                                    logEvent(`Promoted to ${newJob.title} at ${newJob.company}!`, 'positive');
+                                } else {
+                                    logEvent(`Hired as ${newJob.title} at ${newJob.company}!`, 'positive');
+                                }
+                            } else {
+                                if (player.energy < 50) {
+                                    logEvent('Too tired to interview well. Rejected.', 'negative');
+                                } else {
+                                    logEvent('Applied but didn\'t get the job.', 'negative');
+                                }
+                            }
+                        } else {
+                            logEvent('No jobs available for your skill level. Study more!', 'negative');
+                        }
+                    }
+                },
+                {
+                    id: 'side-hustle',
+                    title: '💡 Side Hustle',
+                    desc: 'Quick cash: $50-150 (costs 25 energy)',
+                    disabled: player.energy < 25 || player.isBurnedOut,
+                    action: () => {
+                        player.energy -= 25;
+                        player.consecutiveWorkWeeks++;
+                        const earnings = 50 + Math.floor(Math.random() * 100);
+                        player.money += earnings;
+                        logEvent(`Side hustle earned $${earnings}!`, 'positive');
+                    }
+                },
+                {
+                    id: 'doctor',
+                    title: '🏥 See Doctor',
+                    desc: player.illness
+                        ? `Cure ${illnessEffects[player.illness].name} + heal (costs $${player.hasHealthInsurance ? 100 : 200})`
+                        : `+30 health (costs $${player.hasHealthInsurance ? 75 : 150}${player.hasHealthInsurance ? ' - insured' : ''})`,
+                    disabled: player.money < (player.illness ? (player.hasHealthInsurance ? 100 : 200) : (player.hasHealthInsurance ? 75 : 150)),
+                    action: () => {
+                        const baseCost = player.illness ? 200 : 150;
+                        const cost = player.hasHealthInsurance ? Math.floor(baseCost * 0.5) : baseCost;
+                        player.money -= cost;
+                        player.health = Math.min(100, player.health + 30);
+                        player.weeksSinceDoctor = 0;
+
+                        if (player.illness) {
+                            const curedIllness = illnessEffects[player.illness].name;
+                            player.illness = null;
+                            player.illnessWeeks = 0;
+                            logEvent(`Doctor cured your ${curedIllness}! +30 health. -$${cost}`, 'positive');
+                        } else {
+                            logEvent(`Visited doctor and improved health. -$${cost}`, 'positive');
+                        }
+                    }
+                },
+                {
+                    id: 'risky-investment',
+                    title: '🚀 Risky Investment',
+                    desc: 'Invest $500 - could double or lose it all!',
+                    disabled: player.money < 500,
+                    action: () => {
+                        player.money -= 500;
+                        if (Math.random() < 0.45) {
+                            player.money += 1000;
+                            logEvent('Risky investment paid off! +$1000!', 'positive');
+                        } else {
+                            logEvent('Risky investment failed. Lost $500.', 'negative');
+                        }
+                    }
+                }
+            ];
+
+            container.innerHTML = choices.map(choice => `
+                <button class="choice-btn"
+                        ${choice.disabled || gameState.choicesMadeThisWeek.includes(choice.id) ? 'disabled' : ''}
+                        data-choice="${choice.id}">
+                    <div class="choice-title">${choice.title}</div>
+                    <div class="choice-desc">${choice.desc}</div>
+                </button>
+            `).join('');
+
+            // Add event listeners
+            container.querySelectorAll('.choice-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const choiceId = btn.getAttribute('data-choice');
+                    const choice = choices.find(c => c.id === choiceId);
+                    if (choice && !gameState.choicesMadeThisWeek.includes(choiceId)) {
+                        choice.action();
+                        gameState.choicesMadeThisWeek.push(choiceId);
+                        updateUI();
+                        renderChoices();
+                    }
+                });
+            });
+        }
+
+        // AI makes decisions
+        function aiMakeDecisions(ai) {
+            if (ai.isDead) return;
+
+            // Initialize tracking properties if not present
+            if (ai.weeksSinceSocialized === undefined) ai.weeksSinceSocialized = 0;
+            if (ai.consecutiveWorkWeeks === undefined) ai.consecutiveWorkWeeks = 0;
+            if (ai.isBurnedOut === undefined) ai.isBurnedOut = false;
+            if (ai.weeksSinceStudied === undefined) ai.weeksSinceStudied = 0;
+            if (ai.weeksSinceDoctor === undefined) ai.weeksSinceDoctor = 0;
+            if (ai.illness === undefined) ai.illness = null;
+            if (ai.illnessWeeks === undefined) ai.illnessWeeks = 0;
+            if (!ai.job.company && ai.job.title !== 'Unemployed') {
+                ai.job = { ...unemployed };
+            }
+
+            // AI illness effects
+            const aiIllness = ai.illness ? illnessEffects[ai.illness] : null;
+
+            // AI health affects work capacity
+            let canWork = ai.health >= 20 && !ai.isBurnedOut;
+            if (aiIllness && aiIllness.workEnergyMult >= 999) canWork = false;
+
+            let workEnergyCost = ai.job.energyCost;
+            if (ai.health < 40) workEnergyCost = Math.ceil(ai.job.energyCost * 1.5);
+            if (aiIllness) workEnergyCost = Math.ceil(workEnergyCost * aiIllness.workEnergyMult);
+
+            // AI gets salary from job (with energy-based reduction and illness)
+            if (canWork && ai.job.salary > 0 && ai.energy >= workEnergyCost) {
+                let salary = ai.job.salary;
+                if (aiIllness) salary = Math.floor(salary * aiIllness.workSalaryMult);
+                if (ai.energy < 20) salary = Math.floor(salary * 0.5);
+                else if (ai.energy < 40) salary = Math.floor(salary * 0.75);
+
+                ai.money += salary;
+                ai.energy -= workEnergyCost;
+                ai.happiness -= 5;
+                ai.consecutiveWorkWeeks++;
+            }
+
+            // SMART PRIORITY-BASED DECISION MAKING
+            // AIs evaluate their situation and make the best choice
+
+            let actionTaken = false;
+
+            // CRITICAL 1: See doctor immediately if sick (illness gets worse fast!)
+            if (!actionTaken && ai.illness && ai.money >= 200) {
+                ai.money -= 200;
+                ai.health = Math.min(100, ai.health + 30);
+                ai.weeksSinceDoctor = 0;
+                ai.illness = null;
+                ai.illnessWeeks = 0;
+                actionTaken = true;
+            }
+
+            // CRITICAL 2: Rest if health is dangerously low
+            if (!actionTaken && ai.health < 40) {
+                ai.energy = Math.min(100, ai.energy + 30);
+                ai.health = Math.min(100, ai.health + 10);
+                ai.consecutiveWorkWeeks = 0;
+                ai.isBurnedOut = false;
+                actionTaken = true;
+            }
+
+            // CRITICAL 3: Socialize if happiness is critically low (prevents health spiral)
+            if (!actionTaken && (ai.happiness < 25 || ai.weeksSinceSocialized >= 5) && ai.money >= 30) {
+                ai.happiness = Math.min(100, ai.happiness + 20);
+                ai.energy -= 10;
+                ai.money -= 30;
+                ai.weeksSinceSocialized = 0;
+                actionTaken = true;
+            }
+
+            // HIGH 1: Rest if burned out or very low energy
+            if (!actionTaken && (ai.isBurnedOut || ai.energy < 25)) {
+                ai.energy = Math.min(100, ai.energy + 30);
+                ai.health = Math.min(100, ai.health + 10);
+                ai.consecutiveWorkWeeks = 0;
+                ai.isBurnedOut = false;
+                actionTaken = true;
+            }
+
+            // HIGH 2: Preventive doctor visit if overdue (prevent illness)
+            if (!actionTaken && ai.weeksSinceDoctor >= 5 && ai.money >= 150) {
+                ai.money -= 150;
+                ai.health = Math.min(100, ai.health + 30);
+                ai.weeksSinceDoctor = 0;
+                actionTaken = true;
+            }
+
+            // HIGH 3: Study if skills are decaying and might lose job
+            if (!actionTaken && ai.weeksSinceStudied >= 6 && ai.money >= 50 && ai.energy >= 20) {
+                let skillGain = 8;
+                if (ai.happiness < 20) skillGain = 2;
+                else if (ai.happiness < 40) skillGain = 4;
+                ai.skills = Math.min(100, ai.skills + skillGain);
+                ai.energy -= 20;
+                ai.money -= 50;
+                ai.weeksSinceStudied = 0;
+                actionTaken = true;
+            }
+
+            // MEDIUM: Look for better job if unemployed or underpaid
+            if (!actionTaken && (!ai.job.company || ai.job.salary < 100) && ai.energy >= 30) {
+                let availablePositions = [];
+                companies.forEach(company => {
+                    company.positions.forEach((pos, index) => {
+                        const meetsRequirement = ai.skills >= pos.requirement;
+                        const isBetterPay = pos.salary > ai.job.salary;
+                        if (meetsRequirement && (isBetterPay || !ai.job.company)) {
+                            availablePositions.push({
+                                company: company.name,
+                                industry: company.industry,
+                                ...pos
+                            });
+                        }
+                    });
+                });
+                if (availablePositions.length > 0) {
+                    const hireChance = 0.6 * (ai.energy / 100);
+                    if (Math.random() < hireChance) {
+                        ai.job = availablePositions[Math.floor(Math.random() * availablePositions.length)];
+                        actionTaken = true;
+                    }
+                }
+            }
+
+            // NORMAL DECISIONS (some randomness for variety)
+            if (!actionTaken) {
+                const decision = Math.random();
+
+                if (decision < 0.25 && ai.happiness < 60 && ai.money >= 30) {
+                    // Socialize to maintain happiness
+                    ai.happiness = Math.min(100, ai.happiness + 20);
+                    ai.energy -= 10;
+                    ai.money -= 30;
+                    ai.weeksSinceSocialized = 0;
+                } else if (decision < 0.40 && ai.money >= 50 && ai.energy >= 20) {
+                    // Study to improve skills
+                    let skillGain = 8;
+                    if (ai.happiness < 20) skillGain = 2;
+                    else if (ai.happiness < 40) skillGain = 4;
+                    ai.skills = Math.min(100, ai.skills + skillGain);
+                    ai.energy -= 20;
+                    ai.money -= 50;
+                    ai.weeksSinceStudied = 0;
+                } else if (decision < 0.55 && ai.money >= 200) {
+                    // Invest surplus money
+                    ai.money -= 200;
+                    ai.investments += 200;
+                } else if (decision < 0.70 && ai.energy >= 25 && !ai.isBurnedOut && ai.consecutiveWorkWeeks < 4) {
+                    // Side hustle (but watch for burnout)
+                    ai.energy -= 25;
+                    ai.consecutiveWorkWeeks++;
+                    ai.money += 50 + Math.floor(Math.random() * 100);
+                } else if (decision < 0.80) {
+                    // Look for better job
+                    let availablePositions = [];
+                    companies.forEach(company => {
+                        company.positions.forEach((pos, index) => {
+                            const meetsRequirement = ai.skills >= pos.requirement;
+                            const isBetterPay = pos.salary > ai.job.salary;
+                            if (meetsRequirement && (isBetterPay || !ai.job.company)) {
+                                availablePositions.push({
+                                    company: company.name,
+                                    industry: company.industry,
+                                    ...pos
+                                });
+                            }
+                        });
+                    });
+                    if (availablePositions.length > 0) {
+                        const hireChance = 0.5 * (ai.energy / 100);
+                        if (Math.random() < hireChance) {
+                            ai.job = availablePositions[Math.floor(Math.random() * availablePositions.length)];
+                        }
+                    }
+                } else if (decision < 0.85 && ai.money >= 100 && ai.money > 500) {
+                    // Only gamble if we have plenty of money
+                    ai.money -= 100;
+                    if (Math.random() < 0.55) {
+                        ai.money += Math.floor(Math.random() * 300) + 100;
+                    }
+                } else {
+                    // Rest to recover energy
+                    ai.energy = Math.min(100, ai.energy + 30);
+                    ai.health = Math.min(100, ai.health + 10);
+                    ai.consecutiveWorkWeeks = 0;
+                }
+            }
+
+            // Investments - can grow or shrink (same odds as player)
+            if (ai.investments > 0) {
+                const roll = Math.random();
+                let change;
+                if (roll < 0.15) {
+                    // Bad week - lose 5-15%
+                    change = 1 - (Math.random() * 0.1 + 0.05);
+                } else if (roll < 0.30) {
+                    // Flat week
+                    change = 1;
+                } else if (roll < 0.85) {
+                    // Good week - gain 3-10%
+                    change = 1 + (Math.random() * 0.07 + 0.03);
+                } else {
+                    // Great week - gain 10-20%
+                    change = 1 + (Math.random() * 0.1 + 0.1);
+                }
+                ai.investments *= change;
+            }
+
+            // Random events for AI (less frequent)
+            if (Math.random() < 0.15) {
+                const event = randomEvents[Math.floor(Math.random() * randomEvents.length)];
+                ai.money += event.moneyChange;
+            }
+
+            // Track social isolation
+            ai.weeksSinceSocialized++;
+
+            // Track skill decay
+            ai.weeksSinceStudied++;
+
+            // Skill decay from not studying
+            if (ai.weeksSinceStudied >= 8) {
+                ai.skills = Math.max(0, ai.skills - 3);
+            } else if (ai.weeksSinceStudied >= 5) {
+                ai.skills = Math.max(0, ai.skills - 1);
+            }
+
+            // Doctor decay and illness system
+            ai.weeksSinceDoctor++;
+
+            // Chance to develop illness
+            if (!ai.illness) {
+                let illnessChance = 0;
+                if (ai.weeksSinceDoctor >= 10) illnessChance = 0.4;
+                else if (ai.weeksSinceDoctor >= 7) illnessChance = 0.25;
+                else if (ai.weeksSinceDoctor >= 5) illnessChance = 0.1;
+
+                if (ai.health < 50) illnessChance += 0.15;
+                if (ai.health < 30) illnessChance += 0.2;
+
+                if (Math.random() < illnessChance) {
+                    ai.illness = 'mild';
+                    ai.illnessWeeks = 0;
+                }
+            }
+
+            // Illness progression
+            if (ai.illness) {
+                ai.illnessWeeks++;
+                const illnessEffect = illnessEffects[ai.illness];
+                ai.health = Math.max(0, ai.health - illnessEffect.healthDecayExtra);
+
+                if (ai.illness === 'mild' && ai.illnessWeeks >= 3) {
+                    ai.illness = 'moderate';
+                    ai.illnessWeeks = 0;
+                } else if (ai.illness === 'moderate' && ai.illnessWeeks >= 3) {
+                    ai.illness = 'severe';
+                    ai.illnessWeeks = 0;
+                } else if (ai.illness === 'severe' && ai.illnessWeeks >= 2) {
+                    ai.illness = 'critical';
+                    ai.illnessWeeks = 0;
+                }
+            }
+
+            // Base health decay from not seeing doctor
+            if (ai.weeksSinceDoctor >= 8) {
+                ai.health = Math.max(0, ai.health - 5);
+            } else if (ai.weeksSinceDoctor >= 5) {
+                ai.health = Math.max(0, ai.health - 2);
+            }
+
+            // Calculate stress multiplier
+            let lowStats = 0;
+            if (ai.health < 30) lowStats++;
+            if (ai.happiness < 30) lowStats++;
+            if (ai.energy < 30) lowStats++;
+            const stressMultiplier = lowStats >= 2 ? 2 : 1;
+
+            // Weekly costs
+            ai.money -= 80; // Living expenses
+
+            // Happiness decay with isolation and illness
+            let aiHappinessDecay = 3;
+            if (ai.weeksSinceSocialized >= 6) aiHappinessDecay = 9;
+            else if (ai.weeksSinceSocialized >= 3) aiHappinessDecay = 6;
+            if (ai.illness) {
+                aiHappinessDecay = Math.ceil(aiHappinessDecay * illnessEffects[ai.illness].happinessDecayMult);
+            }
+            ai.happiness = Math.max(0, ai.happiness - (aiHappinessDecay * stressMultiplier));
+
+            // Health decay
+            ai.health = Math.max(0, ai.health - (2 * stressMultiplier));
+
+            // Happiness → Health
+            if (ai.happiness < 15) ai.health = Math.max(0, ai.health - 6);
+            else if (ai.happiness < 30) ai.health = Math.max(0, ai.health - 3);
+
+            // Broke → Health
+            if (ai.money <= 0) ai.health = Math.max(0, ai.health - 8);
+            else if (ai.money < 50) ai.health = Math.max(0, ai.health - 5);
+
+            // Energy recovery based on health
+            let energyRecovery = 10;
+            if (ai.health < 25) energyRecovery = 0;
+            else if (ai.health < 50) energyRecovery = 5;
+
+            if (ai.isBurnedOut) {
+                ai.energy = Math.min(50, ai.energy + energyRecovery);
+            } else {
+                ai.energy = Math.min(100, ai.energy + energyRecovery);
+            }
+
+            // Burnout check
+            if (ai.consecutiveWorkWeeks >= 5 && !ai.isBurnedOut) {
+                ai.isBurnedOut = true;
+                ai.happiness = Math.max(0, ai.happiness - 15);
+                ai.energy = Math.min(50, ai.energy);
+            }
+
+            // Demotion risk within same company
+            if (ai.job.company && ai.job.requirement > 0 && ai.skills < ai.job.requirement) {
+                if (Math.random() < 0.25) {
+                    const company = companies.find(c => c.name === ai.job.company);
+                    if (company) {
+                        const currentIndex = company.positions.findIndex(p => p.title === ai.job.title);
+                        if (currentIndex > 0) {
+                            const newPos = company.positions[currentIndex - 1];
+                            ai.job = { company: company.name, industry: company.industry, ...newPos };
+                        } else {
+                            ai.job = { ...unemployed };
+                        }
+                    }
+                }
+            }
+
+            // Check if AI goes broke
+            if (ai.money < 0) {
+                ai.money = 0;
+                ai.happiness = Math.max(0, ai.happiness - 20);
+            }
+
+            // Check if AI dies
+            if (ai.health <= 0) {
+                ai.isDead = true;
+            }
+        }
+
+        // Process end of week
+        function endWeek() {
+            const player = gameState.player;
+
+            // Track money at start of week for summary
+            const moneyAtStart = player.money + player.investments;
+
+            // Player's investments - can grow or shrink
+            if (player.investments > 0) {
+                const roll = Math.random();
+                let change;
+                if (roll < 0.15) {
+                    // Bad week - lose 5-15%
+                    change = 1 - (Math.random() * 0.1 + 0.05);
+                    const loss = Math.floor(player.investments * (1 - change));
+                    player.investments *= change;
+                    logEvent(`Investments dropped! -$${loss}`, 'negative');
+                } else if (roll < 0.30) {
+                    // Flat week - no change
+                    logEvent('Investments held steady this week.', 'neutral');
+                } else if (roll < 0.85) {
+                    // Good week - gain 3-10%
+                    change = 1 + (Math.random() * 0.07 + 0.03);
+                    const gain = Math.floor(player.investments * (change - 1));
+                    player.investments *= change;
+                    logEvent(`Investments grew! +$${gain}`, 'positive');
+                } else {
+                    // Great week - gain 10-20%
+                    change = 1 + (Math.random() * 0.1 + 0.1);
+                    const gain = Math.floor(player.investments * (change - 1));
+                    player.investments *= change;
+                    logEvent(`Investments soared! +$${gain}`, 'positive');
+                }
+            }
+
+            // Random event chance (medical bills reduced with insurance)
+            if (Math.random() < 0.25) {
+                let event = randomEvents[Math.floor(Math.random() * randomEvents.length)];
+
+                // Health insurance reduces medical bills
+                if (player.hasHealthInsurance && event.text.includes('Medical bill')) {
+                    if (Math.random() < 0.75) {
+                        logEvent('Health insurance covered a medical expense!', 'positive');
+                    } else {
+                        player.money += event.moneyChange;
+                        logEvent(event.text, event.type);
+                    }
+                } else {
+                    player.money += event.moneyChange;
+                    logEvent(event.text, event.type);
+                }
+            }
+
+            // Calculate stress spiral multiplier
+            let lowStats = 0;
+            if (player.health < 30) lowStats++;
+            if (player.happiness < 30) lowStats++;
+            if (player.energy < 30) lowStats++;
+            const stressMultiplier = lowStats >= 2 ? 2 : 1;
+
+            if (lowStats >= 2) {
+                logEvent('Everything is falling apart...', 'negative');
+            }
+
+            // Weekly decay and costs - itemized
+            const rent = 40;
+            const food = 25;
+            const utilities = 15;
+            const insurance = player.hasHealthInsurance ? 50 : 0;
+            const totalExpenses = rent + food + utilities + insurance;
+
+            player.money -= totalExpenses;
+
+            let expenseLog = `Weekly: Rent -$${rent}, Food -$${food}, Utilities -$${utilities}`;
+            if (insurance > 0) {
+                expenseLog += `, Insurance -$${insurance}`;
+            }
+            expenseLog += ` (Total: -$${totalExpenses})`;
+            logEvent(expenseLog, 'neutral');
+
+            // Social isolation tracking
+            player.weeksSinceSocialized++;
+
+            // Skill decay tracking
+            player.weeksSinceStudied++;
+
+            // Happiness decay (affected by isolation, stress, and illness)
+            let happinessDecay = 3;
+            if (player.weeksSinceSocialized >= 6) {
+                happinessDecay = 9; // 3x
+                logEvent('Severe loneliness is crushing your spirit.', 'negative');
+            } else if (player.weeksSinceSocialized >= 3) {
+                happinessDecay = 6; // 2x
+                logEvent('Loneliness is getting to you.', 'negative');
+            }
+
+            // Illness makes happiness decay faster
+            if (player.illness) {
+                happinessDecay = Math.ceil(happinessDecay * illnessEffects[player.illness].happinessDecayMult);
+            }
+
+            player.happiness = Math.max(0, player.happiness - (happinessDecay * stressMultiplier));
+
+            // Health decay (base + stress)
+            player.health = Math.max(0, player.health - (2 * stressMultiplier));
+
+            // Happiness → Health drain
+            if (player.happiness < 15) {
+                player.health = Math.max(0, player.health - 6);
+                logEvent('Severe depression is destroying your health.', 'negative');
+            } else if (player.happiness < 30) {
+                player.health = Math.max(0, player.health - 3);
+                logEvent('Depression is affecting your health.', 'negative');
+            }
+
+            // Broke → Health drain
+            if (player.money <= 0) {
+                player.health = Math.max(0, player.health - 8);
+                logEvent("Can't afford food or shelter. Health declining rapidly.", 'negative');
+            } else if (player.money < 50) {
+                player.health = Math.max(0, player.health - 5);
+                logEvent("Can't afford proper food and care.", 'negative');
+            }
+
+            // Skill decay from not studying
+            if (player.weeksSinceStudied >= 8) {
+                const skillLoss = 3;
+                player.skills = Math.max(0, player.skills - skillLoss);
+                logEvent('Skills are getting rusty! -3 skills.', 'negative');
+            } else if (player.weeksSinceStudied >= 5) {
+                const skillLoss = 1;
+                player.skills = Math.max(0, player.skills - skillLoss);
+                logEvent('Starting to forget things. -1 skill.', 'negative');
+            }
+
+            // Doctor visit tracking and illness system
+            player.weeksSinceDoctor++;
+
+            // Chance to develop illness if not seeing doctor
+            if (!player.illness) {
+                let illnessChance = 0;
+                if (player.weeksSinceDoctor >= 10) {
+                    illnessChance = 0.4; // 40% chance each week
+                } else if (player.weeksSinceDoctor >= 7) {
+                    illnessChance = 0.25;
+                } else if (player.weeksSinceDoctor >= 5) {
+                    illnessChance = 0.1;
+                }
+
+                // Low health increases illness chance
+                if (player.health < 50) illnessChance += 0.15;
+                if (player.health < 30) illnessChance += 0.2;
+
+                if (Math.random() < illnessChance) {
+                    player.illness = 'mild';
+                    player.illnessWeeks = 0;
+                    logEvent(`You've caught a ${illnessEffects.mild.name}! See a doctor!`, 'negative');
+                }
+            }
+
+            // Illness progression - gets worse over time without treatment
+            if (player.illness) {
+                player.illnessWeeks++;
+                const illnessEffect = illnessEffects[player.illness];
+
+                // Apply illness health decay
+                player.health = Math.max(0, player.health - illnessEffect.healthDecayExtra);
+                logEvent(`${illnessEffect.name} is draining your health! -${illnessEffect.healthDecayExtra} health.`, 'negative');
+
+                // Illness progresses if untreated
+                if (player.illness === 'mild' && player.illnessWeeks >= 3) {
+                    player.illness = 'moderate';
+                    player.illnessWeeks = 0;
+                    logEvent('Your cold has worsened into the Flu!', 'negative');
+                } else if (player.illness === 'moderate' && player.illnessWeeks >= 3) {
+                    player.illness = 'severe';
+                    player.illnessWeeks = 0;
+                    logEvent('DANGER: Flu has developed into Pneumonia!', 'negative');
+                } else if (player.illness === 'severe' && player.illnessWeeks >= 2) {
+                    player.illness = 'critical';
+                    player.illnessWeeks = 0;
+                    logEvent('CRITICAL: You are in critical condition! See a doctor NOW!', 'negative');
+                }
+            }
+
+            // Base health decay from not seeing doctor (even without illness)
+            if (player.weeksSinceDoctor >= 8) {
+                const healthLoss = 5;
+                player.health = Math.max(0, player.health - healthLoss);
+                logEvent('Health declining without medical care. -5 health.', 'negative');
+            } else if (player.weeksSinceDoctor >= 5) {
+                const healthLoss = 2;
+                player.health = Math.max(0, player.health - healthLoss);
+                logEvent('Should see a doctor soon. -2 health.', 'negative');
+            }
+
+            // Energy recovery (affected by health)
+            let energyRecovery = 10;
+            if (player.health < 25) {
+                energyRecovery = 0;
+                logEvent('Too sick to recover energy naturally.', 'negative');
+            } else if (player.health < 50) {
+                energyRecovery = 5;
+                logEvent('Poor health is slowing your recovery.', 'negative');
+            }
+
+            // Burnout caps energy
+            if (player.isBurnedOut) {
+                player.energy = Math.min(50, player.energy + energyRecovery);
+            } else {
+                player.energy = Math.min(100, player.energy + energyRecovery);
+            }
+
+            // Burnout check
+            if (player.consecutiveWorkWeeks >= 5 && !player.isBurnedOut) {
+                player.isBurnedOut = true;
+                player.happiness = Math.max(0, player.happiness - 15);
+                player.energy = Math.min(50, player.energy);
+                logEvent("BURNOUT! You've pushed yourself too hard. Energy capped until you rest.", 'negative');
+            }
+
+            // Skills → Job retention (demotion risk within same company)
+            if (player.job.company && player.job.requirement > 0 && player.skills < player.job.requirement) {
+                if (Math.random() < 0.25) {
+                    const company = companies.find(c => c.name === player.job.company);
+                    if (company) {
+                        const currentIndex = getPositionIndex(player.job);
+                        if (currentIndex > 0) {
+                            // Demote to lower position in same company
+                            const newPos = company.positions[currentIndex - 1];
+                            player.job = {
+                                company: company.name,
+                                industry: company.industry,
+                                ...newPos
+                            };
+                            logEvent(`Demoted to ${newPos.title} at ${company.name} due to poor performance!`, 'negative');
+                        } else {
+                            // Fired from entry level position
+                            player.job = { ...unemployed };
+                            logEvent(`Fired from ${company.name} due to poor performance!`, 'negative');
+                        }
+                    }
+                }
+            }
+
+            // Low stats penalties (existing)
+            if (player.happiness < 20) {
+                player.energy = Math.max(0, player.energy - 10);
+                logEvent('Low happiness is draining your energy!', 'negative');
+            }
+
+            if (player.health < 20) {
+                player.happiness = Math.max(0, player.happiness - 10);
+                logEvent('Poor health is affecting your happiness!', 'negative');
+            }
+
+            // Check if player goes broke
+            if (player.money < 0) {
+                player.money = 0;
+                player.happiness = Math.max(0, player.happiness - 20);
+                logEvent("You're broke! Happiness decreased.", 'negative');
+            }
+
+            // AI decisions
+            gameState.competitors.forEach(ai => aiMakeDecisions(ai));
+
+            // Check if player died
+            if (player.health <= 0) {
+                player.isDead = true;
+                endGame('death');
+                return;
+            }
+
+            // Calculate and log weekly summary
+            const moneyAtEnd = player.money + player.investments;
+            const weeklyChange = Math.floor(moneyAtEnd - moneyAtStart);
+            if (weeklyChange >= 0) {
+                logEvent(`Week summary: +$${weeklyChange} net gain`, 'positive');
+            } else {
+                logEvent(`Week summary: -$${Math.abs(weeklyChange)} net loss`, 'negative');
+            }
+
+            // Next week
+            gameState.week++;
+            gameState.choicesMadeThisWeek = [];
+
+            // Check if game is over
+            if (gameState.week > 52) {
+                endGame('complete');
+                return;
+            }
+
+            updateUI();
+            renderChoices();
+        }
+
+        // End game
+        function endGame(reason) {
+            const modal = document.getElementById('game-over-modal');
+            const title = document.getElementById('game-over-title');
+            const message = document.getElementById('game-over-message');
+            const standings = document.getElementById('final-standings');
+
+            // Store breakdown before combining
+            const playerCash = Math.floor(gameState.player.money);
+            const playerInvestments = Math.floor(gameState.player.investments);
+            const playerTotal = playerCash + playerInvestments;
+
+            // Store all participants' breakdowns
+            const breakdowns = {};
+            breakdowns[gameState.player.name] = { cash: playerCash, investments: playerInvestments };
+
+            gameState.competitors.forEach(ai => {
+                breakdowns[ai.name] = {
+                    cash: Math.floor(ai.money),
+                    investments: Math.floor(ai.investments)
+                };
+            });
+
+            // Include investments in final money for sorting
+            gameState.player.money += gameState.player.investments;
+            gameState.player.investments = 0;
+            gameState.competitors.forEach(ai => {
+                ai.money += ai.investments;
+                ai.investments = 0;
+            });
+
+            const participants = getAllParticipants();
+            const winner = participants[0];
+            const playerRank = participants.findIndex(p => p.isPlayer) + 1;
+
+            if (reason === 'death') {
+                title.textContent = '💀 You Died!';
+                message.textContent = 'Your health reached zero. Take better care of yourself next time!';
+            } else if (winner.isPlayer) {
+                title.textContent = '🏆 You Won!';
+                message.textContent = `Congratulations! You ended the year with $${playerTotal}!`;
+            } else {
+                title.textContent = `📊 Year Complete - Rank #${playerRank}`;
+                message.textContent = `${winner.name} won with $${Math.floor(winner.money)}. You had $${playerTotal}.`;
+            }
+
+            standings.innerHTML = participants.map((p, index) => {
+                const bd = breakdowns[p.name];
+                const total = Math.floor(p.money);
+                return `
+                    <div class="standing-item ${index === 0 ? 'winner' : ''} ${p.isPlayer ? 'player' : ''}">
+                        <div class="standing-main">
+                            <span>${index + 1}. ${p.name} ${p.isPlayer ? '(You)' : ''} ${p.isDead ? '💀' : ''}</span>
+                            <span class="total-money">$${total}</span>
+                        </div>
+                        <div class="standing-breakdown">
+                            <span>Cash: $${bd.cash}</span>
+                            <span>Investments: $${bd.investments}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            modal.classList.add('active');
+        }
+
+        // ==================== MULTIPLAYER FUNCTIONS ====================
+
+        // Show a specific screen in the start modal
+        function showScreen(screenId) {
+            const screens = ['main-menu', 'multiplayer-menu', 'lobby-screen', 'join-screen', 'client-lobby'];
+            screens.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.style.display = id === screenId ? 'block' : 'none';
+                    if (el.classList.contains('lobby-screen') || el.classList.contains('join-screen')) {
+                        el.classList.toggle('active', id === screenId);
+                    }
+                }
+            });
+        }
+
+        // Create a room (host)
+        function createRoom() {
+            const playerName = document.getElementById('player-name-input').value.trim() || 'Player';
+            const roomCode = generateRoomCode();
+            const playerId = generatePlayerId();
+
+            gameState.gameMode = 'multi-host';
+            gameState.roomCode = roomCode;
+            gameState.localPlayerId = playerId;
+            gameState.humanPlayers = [{
+                odlap: playerId,
+                name: playerName,
+                isReady: false,
+                isLocal: true,
+                isHost: true
+            }];
+            gameState.connections = [];
+
+            // Create PeerJS peer
+            gameState.peer = new Peer('lifesim-' + roomCode);
+
+            gameState.peer.on('open', (id) => {
+                console.log('Host peer opened with ID:', id);
+                document.getElementById('room-code-display').textContent = roomCode;
+                updateLobbyPlayerList();
+                showScreen('lobby-screen');
+            });
+
+            gameState.peer.on('connection', (conn) => {
+                console.log('New connection from:', conn.peer);
+                handleNewConnection(conn);
+            });
+
+            gameState.peer.on('error', (err) => {
+                console.error('Peer error:', err);
+                alert('Connection error: ' + err.type);
+            });
+        }
+
+        // Handle new connection (host only)
+        function handleNewConnection(conn) {
+            conn.on('open', () => {
+                console.log('Connection opened with:', conn.peer);
+                gameState.connections.push(conn);
+
+                conn.on('data', (data) => {
+                    handleHostMessage(data, conn);
+                });
+
+                conn.on('close', () => {
+                    handlePlayerDisconnect(conn);
+                });
+            });
+        }
+
+        // Handle messages received by host
+        function handleHostMessage(data, conn) {
+            console.log('Host received:', data);
+
+            switch (data.type) {
+                case 'join':
+                    if (gameState.humanPlayers.length < 4) {
+                        const newPlayer = {
+                            odlap: data.odlap,
+                            name: data.name,
+                            isReady: false,
+                            isLocal: false,
+                            isHost: false,
+                            connection: conn
+                        };
+                        gameState.humanPlayers.push(newPlayer);
+                        updateLobbyPlayerList();
+
+                        // Send current player list to all clients
+                        broadcastToClients({
+                            type: 'player_list',
+                            players: gameState.humanPlayers.map(p => ({
+                                odlap: p.odlap,
+                                name: p.name,
+                                isHost: p.isHost
+                            })),
+                            roomCode: gameState.roomCode
+                        });
+                    } else {
+                        conn.send({ type: 'error', message: 'Room is full' });
+                    }
+                    break;
+
+                case 'choices':
+                    // Store player's choices and updated state for this week
+                    const player = gameState.humanPlayers.find(p => p.odlap === data.odlap);
+                    if (player) {
+                        player.weekChoices = data.choices;
+                        // Update playerData with client's current state (after they made their choices)
+                        if (data.playerData && player.playerData) {
+                            Object.assign(player.playerData, data.playerData);
+                        }
+                    }
+                    break;
+
+                case 'end_week':
+                    const readyPlayer = gameState.humanPlayers.find(p => p.odlap === data.odlap);
+                    if (readyPlayer) {
+                        readyPlayer.isReady = true;
+                        // Update player death status
+                        if (data.playerDead) {
+                            readyPlayer.isDead = true;
+                            if (readyPlayer.playerData) {
+                                readyPlayer.playerData.isDead = true;
+                            }
+                            console.log('Player marked as dead:', readyPlayer.name);
+                        }
+                        broadcastToClients({
+                            type: 'player_ready',
+                            odlap: data.odlap
+                        });
+                        updateReadyStatus();
+                        checkAllPlayersReady();
+                    }
+                    break;
+            }
+        }
+
+        // Handle player disconnect
+        function handlePlayerDisconnect(conn) {
+            const index = gameState.connections.indexOf(conn);
+            if (index > -1) {
+                gameState.connections.splice(index, 1);
+            }
+
+            const playerIndex = gameState.humanPlayers.findIndex(p => p.connection === conn);
+            if (playerIndex > -1) {
+                const disconnectedPlayer = gameState.humanPlayers[playerIndex];
+                gameState.humanPlayers.splice(playerIndex, 1);
+
+                broadcastToClients({
+                    type: 'player_left',
+                    odlap: disconnectedPlayer.odlap
+                });
+
+                updateLobbyPlayerList();
+                if (gameState.week > 1) {
+                    updateReadyStatus();
+                }
+            }
+        }
+
+        // Broadcast message to all clients (host only)
+        function broadcastToClients(message) {
+            gameState.connections.forEach(conn => {
+                if (conn.open) {
+                    conn.send(message);
+                }
+            });
+        }
+
+        // Join a room (client)
+        function joinRoom() {
+            const playerName = document.getElementById('player-name-input').value.trim() || 'Player';
+            const roomCode = document.getElementById('room-code-input').value.trim().toUpperCase();
+
+            if (roomCode.length !== 6) {
+                document.getElementById('join-error').textContent = 'Please enter a 6-character room code';
+                document.getElementById('join-error').style.display = 'block';
+                return;
+            }
+
+            document.getElementById('join-error').style.display = 'none';
+            document.getElementById('join-waiting').style.display = 'flex';
+            document.getElementById('join-btn').disabled = true;
+
+            const playerId = generatePlayerId();
+            gameState.gameMode = 'multi-client';
+            gameState.roomCode = roomCode;
+            gameState.localPlayerId = playerId;
+
+            // Create peer for client
+            gameState.peer = new Peer();
+
+            gameState.peer.on('open', () => {
+                // Connect to host
+                const conn = gameState.peer.connect('lifesim-' + roomCode);
+
+                conn.on('open', () => {
+                    console.log('Connected to host');
+                    gameState.hostConnection = conn;
+
+                    // Send join message
+                    conn.send({
+                        type: 'join',
+                        name: playerName,
+                        odlap: playerId
+                    });
+
+                    // Set up message handler
+                    conn.on('data', (data) => {
+                        handleClientMessage(data);
+                    });
+
+                    conn.on('close', () => {
+                        alert('Disconnected from host');
+                        resetToMainMenu();
+                    });
+                });
+
+                conn.on('error', (err) => {
+                    console.error('Connection error:', err);
+                    document.getElementById('join-error').textContent = 'Could not connect to room. Check the code and try again.';
+                    document.getElementById('join-error').style.display = 'block';
+                    document.getElementById('join-waiting').style.display = 'none';
+                    document.getElementById('join-btn').disabled = false;
+                });
+            });
+
+            gameState.peer.on('error', (err) => {
+                console.error('Peer error:', err);
+                document.getElementById('join-error').textContent = 'Connection error: ' + err.type;
+                document.getElementById('join-error').style.display = 'block';
+                document.getElementById('join-waiting').style.display = 'none';
+                document.getElementById('join-btn').disabled = false;
+            });
+
+            // Timeout for connection
+            setTimeout(() => {
+                if (!gameState.hostConnection) {
+                    document.getElementById('join-error').textContent = 'Connection timed out. Room may not exist.';
+                    document.getElementById('join-error').style.display = 'block';
+                    document.getElementById('join-waiting').style.display = 'none';
+                    document.getElementById('join-btn').disabled = false;
+                    if (gameState.peer) {
+                        gameState.peer.destroy();
+                    }
+                }
+            }, 10000);
+        }
+
+        // Handle messages received by client
+        function handleClientMessage(data) {
+            console.log('Client received:', data);
+
+            switch (data.type) {
+                case 'player_list':
+                    gameState.humanPlayers = data.players.map(p => ({
+                        ...p,
+                        isLocal: p.odlap === gameState.localPlayerId,
+                        isReady: false
+                    }));
+                    document.getElementById('client-room-code').textContent = data.roomCode;
+                    updateClientLobby();
+                    showScreen('client-lobby');
+                    break;
+
+                case 'player_joined':
+                    // Already handled by player_list
+                    break;
+
+                case 'player_left':
+                    gameState.humanPlayers = gameState.humanPlayers.filter(p => p.odlap !== data.odlap);
+                    updateClientLobby();
+                    if (gameState.week > 1) {
+                        updateReadyStatus();
+                    }
+                    break;
+
+                case 'game_start':
+                    // Host is starting the game
+                    initMultiplayerGame(data.gameData);
+                    break;
+
+                case 'game_state':
+                    // Receive full game state update
+                    applyGameState(data.state);
+                    break;
+
+                case 'player_ready':
+                    const player = gameState.humanPlayers.find(p => p.odlap === data.odlap);
+                    if (player) {
+                        player.isReady = true;
+                        updateReadyStatus();
+                    }
+                    break;
+
+                case 'week_processed':
+                    // Display log messages for this player FIRST (before week updates)
+                    if (data.playerLogs && data.playerLogs[gameState.localPlayerId]) {
+                        data.playerLogs[gameState.localPlayerId].forEach(logEntry => {
+                            logEvent(logEntry.msg, logEntry.type);
+                        });
+                    }
+
+                    // Week has been processed, update state
+                    applyGameState(data.state);
+                    gameState.waitingForPlayers = false;
+                    gameState.humanPlayers.forEach(p => p.isReady = false);
+
+                    // Check if we died
+                    if (gameState.player.isDead) {
+                        endGame('death');
+                        return;
+                    }
+
+                    // Check if game is over
+                    if (gameState.week > 52) {
+                        endGame('complete');
+                        return;
+                    }
+
+                    // Mark dead players
+                    if (data.deadPlayers) {
+                        data.deadPlayers.forEach(odlap => {
+                            const comp = gameState.competitors.find(c => c.odlap === odlap);
+                            if (comp) comp.isDead = true;
+                        });
+                    }
+
+                    document.getElementById('next-week-btn').textContent = 'End Week →';
+                    document.getElementById('next-week-btn').disabled = false;
+                    updateReadyStatus();
+                    break;
+
+                case 'game_end':
+                    // Game has ended
+                    applyGameState(data.state);
+                    endGame(data.reason);
+                    break;
+
+                case 'host_left':
+                    alert('The host has left the game.');
+                    resetToMainMenu();
+                    break;
+
+                case 'error':
+                    alert(data.message);
+                    break;
+            }
+        }
+
+        // Update lobby player list (host view)
+        function updateLobbyPlayerList() {
+            const container = document.getElementById('lobby-player-list');
+            document.getElementById('player-count').textContent = gameState.humanPlayers.length;
+
+            container.innerHTML = gameState.humanPlayers.map(p => `
+                <div class="player-item ${p.isHost ? 'host' : ''} ${p.isLocal ? 'local' : ''}">
+                    <span class="player-name">${p.name}</span>
+                    <span>
+                        ${p.isHost ? '<span class="player-tag host-tag">HOST</span>' : ''}
+                        ${p.isLocal ? '<span class="player-tag you-tag">YOU</span>' : ''}
+                    </span>
+                </div>
+            `).join('');
+        }
+
+        // Update client lobby view
+        function updateClientLobby() {
+            const container = document.getElementById('client-player-list');
+            document.getElementById('client-player-count').textContent = gameState.humanPlayers.length;
+
+            container.innerHTML = gameState.humanPlayers.map(p => `
+                <div class="player-item ${p.isHost ? 'host' : ''} ${p.isLocal ? 'local' : ''}">
+                    <span class="player-name">${p.name}</span>
+                    <span>
+                        ${p.isHost ? '<span class="player-tag host-tag">HOST</span>' : ''}
+                        ${p.isLocal ? '<span class="player-tag you-tag">YOU</span>' : ''}
+                    </span>
+                </div>
+            `).join('');
+        }
+
+        // Start multiplayer game (host only)
+        function startMultiplayerGame() {
+            if (gameState.humanPlayers.length < 1) return;
+
+            const playerName = gameState.humanPlayers.find(p => p.isLocal).name;
+
+            // Initialize game state for host
+            gameState.week = 1;
+            gameState.player = createPerson(playerName, true);
+            gameState.player.odlap = gameState.localPlayerId;
+
+            // Create player data for other human players
+            gameState.humanPlayers.forEach(p => {
+                if (!p.isLocal) {
+                    p.playerData = createPerson(p.name, true);
+                    p.playerData.odlap = p.odlap;
+                    p.playerData.isPlayer = false; // Not the local player
+                }
+            });
+
+            // Fill remaining slots with AI (total 5 participants: humans + AIs)
+            const aiCount = Math.max(0, 5 - gameState.humanPlayers.length);
+            gameState.competitors = [];
+
+            // Add human competitors (non-local players) first
+            gameState.humanPlayers.forEach(p => {
+                if (!p.isLocal && p.playerData) {
+                    p.playerData.isHuman = true;
+                    gameState.competitors.push(p.playerData);
+                }
+            });
+
+            // Then add AIs with unique names
+            for (let i = 0; i < aiCount; i++) {
+                const ai = createPerson(aiNames[i]);
+                ai.isAI = true;
+                ai.aiIndex = i; // Track which AI this is
+                gameState.competitors.push(ai);
+            }
+
+            gameState.choicesMadeThisWeek = [];
+
+            // Send game start to all clients
+            broadcastToClients({
+                type: 'game_start',
+                gameData: {
+                    humanPlayers: gameState.humanPlayers.map(p => ({
+                        odlap: p.odlap,
+                        name: p.name,
+                        isHost: p.isHost
+                    })),
+                    aiCount: aiCount,
+                    aiNames: aiNames.slice(0, aiCount)
+                }
+            });
+
+            // Start the game
+            document.getElementById('start-modal').classList.remove('active');
+            updateUI();
+            renderChoices();
+        }
+
+        // Initialize multiplayer game (client)
+        function initMultiplayerGame(gameData) {
+            const localPlayer = gameState.humanPlayers.find(p => p.isLocal);
+
+            gameState.week = 1;
+            gameState.player = createPerson(localPlayer.name, true);
+            gameState.player.odlap = gameState.localPlayerId;
+
+            // Create competitors (other humans + AI)
+            gameState.competitors = [];
+
+            // Add other human players
+            gameState.humanPlayers.forEach(p => {
+                if (!p.isLocal) {
+                    const competitor = createPerson(p.name, false);
+                    competitor.odlap = p.odlap;
+                    competitor.isHuman = true;
+                    gameState.competitors.push(competitor);
+                }
+            });
+
+            // Add AI with unique names from host
+            const names = gameData.aiNames || aiNames.slice(0, gameData.aiCount);
+            for (let i = 0; i < gameData.aiCount; i++) {
+                const ai = createPerson(names[i]);
+                ai.isAI = true;
+                ai.aiIndex = i;
+                gameState.competitors.push(ai);
+            }
+
+            gameState.choicesMadeThisWeek = [];
+
+            document.getElementById('start-modal').classList.remove('active');
+            updateUI();
+            renderChoices();
+        }
+
+        // Send choices to host (client)
+        function sendChoicesToHost() {
+            if (gameState.gameMode === 'multi-client' && gameState.hostConnection) {
+                gameState.hostConnection.send({
+                    type: 'choices',
+                    odlap: gameState.localPlayerId,
+                    choices: gameState.choicesMadeThisWeek,
+                    playerData: {
+                        money: gameState.player.money,
+                        health: gameState.player.health,
+                        happiness: gameState.player.happiness,
+                        energy: gameState.player.energy,
+                        skills: gameState.player.skills,
+                        investments: gameState.player.investments,
+                        job: gameState.player.job,
+                        illness: gameState.player.illness,
+                        illnessWeeks: gameState.player.illnessWeeks,
+                        hasHealthInsurance: gameState.player.hasHealthInsurance,
+                        weeksSinceDoctor: gameState.player.weeksSinceDoctor,
+                        weeksSinceSocialized: gameState.player.weeksSinceSocialized,
+                        weeksSinceStudied: gameState.player.weeksSinceStudied,
+                        consecutiveWorkWeeks: gameState.player.consecutiveWorkWeeks,
+                        isBurnedOut: gameState.player.isBurnedOut
+                    }
+                });
+            }
+        }
+
+        // Signal ready to end week
+        function signalEndWeek() {
+            if (gameState.gameMode === 'single') {
+                endWeek();
+                return;
+            }
+
+            gameState.waitingForPlayers = true;
+            document.getElementById('next-week-btn').textContent = 'Waiting for players...';
+            document.getElementById('next-week-btn').disabled = true;
+
+            // Mark local player as ready
+            const localPlayer = gameState.humanPlayers.find(p => p.isLocal);
+            if (localPlayer) {
+                localPlayer.isReady = true;
+            }
+
+            if (gameState.gameMode === 'multi-host') {
+                // Send choices first
+                broadcastToClients({
+                    type: 'player_ready',
+                    odlap: gameState.localPlayerId
+                });
+                updateReadyStatus();
+                checkAllPlayersReady();
+            } else if (gameState.gameMode === 'multi-client') {
+                sendChoicesToHost();
+                gameState.hostConnection.send({
+                    type: 'end_week',
+                    odlap: gameState.localPlayerId,
+                    playerDead: gameState.player.isDead
+                });
+                updateReadyStatus();
+            }
+        }
+
+        // Check if all players are ready (host only)
+        function checkAllPlayersReady() {
+            if (gameState.gameMode !== 'multi-host') return;
+
+            // Dead players count as ready
+            const allReady = gameState.humanPlayers.every(p => {
+                // Host player dead
+                if (p.isLocal && gameState.player.isDead) return true;
+                // Client player dead (tracked in playerData or marked dead flag)
+                if (!p.isLocal && p.playerData && p.playerData.isDead) return true;
+                if (!p.isLocal && p.isDead) return true;
+                // Player is ready
+                return p.isReady;
+            });
+
+            console.log('Checking all ready:', gameState.humanPlayers.map(p => ({
+                name: p.name,
+                isReady: p.isReady,
+                isDead: p.isDead || (p.playerData && p.playerData.isDead),
+                isLocal: p.isLocal
+            })));
+
+            if (allReady) {
+                processMultiplayerWeek();
+            }
+        }
+
+        // Process the week for all players (host only)
+        function processMultiplayerWeek() {
+            // Collect logs for each player
+            const playerLogs = {};
+
+            // Process local player using the standard endWeek but skip AI and week advancement
+            if (!gameState.player.isDead) {
+                processPlayerWeek(gameState.player, true);
+
+                // Check if local player died this week
+                if (gameState.player.health <= 0) {
+                    gameState.player.isDead = true;
+                    logEvent('You have died!', 'negative');
+                }
+            }
+
+            // Process other human players' weeks (collect logs for them)
+            gameState.humanPlayers.forEach(hp => {
+                if (!hp.isLocal && hp.playerData && !hp.playerData.isDead) {
+                    const logs = processPlayerWeek(hp.playerData, false, true);
+                    playerLogs[hp.odlap] = logs;
+
+                    // Check if this player died
+                    if (hp.playerData.health <= 0) {
+                        hp.playerData.isDead = true;
+                        hp.isDead = true; // Also mark at humanPlayers level for checkAllPlayersReady
+                        playerLogs[hp.odlap].push({msg: 'You have died!', type: 'negative'});
+                    }
+                }
+            });
+
+            // Process AI decisions (only living AIs)
+            gameState.competitors.forEach(comp => {
+                if (comp.isAI && !comp.isDead) {
+                    aiMakeDecisions(comp);
+                }
+            });
+
+            // Advance the week
+            gameState.week++;
+            gameState.choicesMadeThisWeek = [];
+
+            // Check if game is over (year complete)
+            if (gameState.week > 52) {
+                endGame('complete');
+                // Still broadcast to clients so they see the end
+                broadcastToClients({
+                    type: 'game_end',
+                    reason: 'complete',
+                    state: getSerializableGameState()
+                });
+                return;
+            }
+
+            // Check if only the host is dead (host's game ends, but clients continue)
+            if (gameState.player.isDead) {
+                // Broadcast state first so clients can continue
+                broadcastToClients({
+                    type: 'week_processed',
+                    state: getSerializableGameState(),
+                    deadPlayers: [gameState.localPlayerId],
+                    playerLogs: playerLogs
+                });
+                endGame('death');
+                return;
+            }
+
+            // Reset ready status
+            gameState.humanPlayers.forEach(p => p.isReady = false);
+            gameState.waitingForPlayers = false;
+
+            // Build list of dead players to notify clients
+            const deadPlayers = [];
+            gameState.humanPlayers.forEach(hp => {
+                if (hp.playerData && hp.playerData.isDead) {
+                    deadPlayers.push(hp.odlap);
+                }
+            });
+
+            // Broadcast updated state to all clients
+            broadcastToClients({
+                type: 'week_processed',
+                state: getSerializableGameState(),
+                deadPlayers: deadPlayers,
+                playerLogs: playerLogs
+            });
+
+            document.getElementById('next-week-btn').textContent = 'End Week →';
+            document.getElementById('next-week-btn').disabled = false;
+            updateUI();
+            renderChoices();
+            updateReadyStatus();
+        }
+
+        // Process a single player's week (used for multiplayer)
+        // Returns array of log messages if collectLogs is true
+        function processPlayerWeek(player, showLogs, collectLogs = false) {
+            const collectedLogs = [];
+            const log = showLogs ? logEvent : (collectLogs ? (msg, type) => collectedLogs.push({msg, type}) : () => {});
+
+            // Track money at start
+            const moneyAtStart = player.money + player.investments;
+
+            // Investments
+            if (player.investments > 0) {
+                const roll = Math.random();
+                let change;
+                if (roll < 0.15) {
+                    change = 1 - (Math.random() * 0.1 + 0.05);
+                    const loss = Math.floor(player.investments * (1 - change));
+                    player.investments *= change;
+                    log(`Investments dropped! -$${loss}`, 'negative');
+                } else if (roll < 0.30) {
+                    log('Investments held steady this week.', 'neutral');
+                } else if (roll < 0.85) {
+                    change = 1 + (Math.random() * 0.07 + 0.03);
+                    const gain = Math.floor(player.investments * (change - 1));
+                    player.investments *= change;
+                    log(`Investments grew! +$${gain}`, 'positive');
+                } else {
+                    change = 1 + (Math.random() * 0.1 + 0.1);
+                    const gain = Math.floor(player.investments * (change - 1));
+                    player.investments *= change;
+                    log(`Investments soared! +$${gain}`, 'positive');
+                }
+            }
+
+            // Random events
+            if (Math.random() < 0.25) {
+                let event = randomEvents[Math.floor(Math.random() * randomEvents.length)];
+                if (player.hasHealthInsurance && event.text.includes('Medical bill')) {
+                    if (Math.random() < 0.75) {
+                        log('Health insurance covered a medical expense!', 'positive');
+                    } else {
+                        player.money += event.moneyChange;
+                        log(event.text, event.type);
+                    }
+                } else {
+                    player.money += event.moneyChange;
+                    log(event.text, event.type);
+                }
+            }
+
+            // Stress multiplier
+            let lowStats = 0;
+            if (player.health < 30) lowStats++;
+            if (player.happiness < 30) lowStats++;
+            if (player.energy < 30) lowStats++;
+            const stressMultiplier = lowStats >= 2 ? 2 : 1;
+
+            if (lowStats >= 2) log('Everything is falling apart...', 'negative');
+
+            // Weekly expenses
+            const insurance = player.hasHealthInsurance ? 50 : 0;
+            const totalExpenses = 40 + 25 + 15 + insurance;
+            player.money -= totalExpenses;
+            log(`Weekly expenses: -$${totalExpenses}`, 'neutral');
+
+            // Tracking
+            player.weeksSinceSocialized++;
+            player.weeksSinceStudied++;
+
+            // Happiness decay
+            let happinessDecay = 3;
+            if (player.weeksSinceSocialized >= 6) happinessDecay = 9;
+            else if (player.weeksSinceSocialized >= 3) happinessDecay = 6;
+            if (player.illness) {
+                happinessDecay = Math.ceil(happinessDecay * illnessEffects[player.illness].happinessDecayMult);
+            }
+            player.happiness = Math.max(0, player.happiness - (happinessDecay * stressMultiplier));
+
+            // Health decay
+            player.health = Math.max(0, player.health - (2 * stressMultiplier));
+
+            // Happiness → Health
+            if (player.happiness < 15) player.health = Math.max(0, player.health - 6);
+            else if (player.happiness < 30) player.health = Math.max(0, player.health - 3);
+
+            // Broke → Health
+            if (player.money <= 0) player.health = Math.max(0, player.health - 8);
+            else if (player.money < 50) player.health = Math.max(0, player.health - 5);
+
+            // Skill decay
+            if (player.weeksSinceStudied >= 8) player.skills = Math.max(0, player.skills - 3);
+            else if (player.weeksSinceStudied >= 5) player.skills = Math.max(0, player.skills - 1);
+
+            // Doctor/Illness
+            player.weeksSinceDoctor++;
+            if (!player.illness) {
+                let illnessChance = 0;
+                if (player.weeksSinceDoctor >= 10) illnessChance = 0.4;
+                else if (player.weeksSinceDoctor >= 7) illnessChance = 0.25;
+                else if (player.weeksSinceDoctor >= 5) illnessChance = 0.1;
+                if (player.health < 50) illnessChance += 0.15;
+                if (player.health < 30) illnessChance += 0.2;
+                if (Math.random() < illnessChance) {
+                    player.illness = 'mild';
+                    player.illnessWeeks = 0;
+                    log(`You've caught a cold!`, 'negative');
+                }
+            }
+
+            if (player.illness) {
+                player.illnessWeeks++;
+                const effect = illnessEffects[player.illness];
+                player.health = Math.max(0, player.health - effect.healthDecayExtra);
+                if (player.illness === 'mild' && player.illnessWeeks >= 3) {
+                    player.illness = 'moderate'; player.illnessWeeks = 0;
+                } else if (player.illness === 'moderate' && player.illnessWeeks >= 3) {
+                    player.illness = 'severe'; player.illnessWeeks = 0;
+                } else if (player.illness === 'severe' && player.illnessWeeks >= 2) {
+                    player.illness = 'critical'; player.illnessWeeks = 0;
+                }
+            }
+
+            if (player.weeksSinceDoctor >= 8) player.health = Math.max(0, player.health - 5);
+            else if (player.weeksSinceDoctor >= 5) player.health = Math.max(0, player.health - 2);
+
+            // Energy recovery
+            let energyRecovery = 10;
+            if (player.health < 25) energyRecovery = 0;
+            else if (player.health < 50) energyRecovery = 5;
+            if (player.isBurnedOut) player.energy = Math.min(50, player.energy + energyRecovery);
+            else player.energy = Math.min(100, player.energy + energyRecovery);
+
+            // Burnout
+            if (player.consecutiveWorkWeeks >= 5 && !player.isBurnedOut) {
+                player.isBurnedOut = true;
+                player.happiness = Math.max(0, player.happiness - 15);
+                player.energy = Math.min(50, player.energy);
+            }
+
+            // Job demotion
+            if (player.job && player.job.company && player.job.requirement > 0 && player.skills < player.job.requirement) {
+                if (Math.random() < 0.25) {
+                    const company = companies.find(c => c.name === player.job.company);
+                    if (company) {
+                        const idx = company.positions.findIndex(p => p.title === player.job.title);
+                        if (idx > 0) {
+                            const newPos = company.positions[idx - 1];
+                            player.job = { company: company.name, industry: company.industry, ...newPos };
+                        } else {
+                            player.job = { ...unemployed };
+                        }
+                    }
+                }
+            }
+
+            // Low stats penalties
+            if (player.happiness < 20) player.energy = Math.max(0, player.energy - 10);
+            if (player.health < 20) player.happiness = Math.max(0, player.happiness - 10);
+            if (player.money < 0) {
+                player.money = 0;
+                player.happiness = Math.max(0, player.happiness - 20);
+            }
+
+            // Weekly summary
+            const moneyAtEnd = player.money + player.investments;
+            const weeklyChange = Math.floor(moneyAtEnd - moneyAtStart);
+            if (weeklyChange >= 0) log(`Week summary: +$${weeklyChange}`, 'positive');
+            else log(`Week summary: -$${Math.abs(weeklyChange)}`, 'negative');
+
+            return collectLogs ? collectedLogs : null;
+        }
+
+        // Get serializable game state
+        function getSerializableGameState() {
+            // competitors already contains both human playerData and AIs
+            // so just serialize them all
+            return {
+                week: gameState.week,
+                player: serializePlayer(gameState.player),
+                competitors: gameState.competitors.map(c => serializePlayer(c))
+            };
+        }
+
+        // Serialize player data (remove circular refs)
+        function serializePlayer(player) {
+            const { connection, ...rest } = player;
+            return rest;
+        }
+
+        // Apply received game state (client)
+        // NOTE: Client does NOT process their own week - host processes everyone
+        // Client just receives the processed state
+        function applyGameState(state) {
+            gameState.week = state.week;
+
+            // Find our player data in the competitors (host tracks us as a competitor)
+            // The client's "player" is stored in host's competitors with matching odlap
+            const myDataFromHost = state.competitors.find(c => c.odlap === gameState.localPlayerId);
+            if (myDataFromHost) {
+                // Update our local player with host's processed data
+                Object.assign(gameState.player, myDataFromHost);
+                gameState.player.isPlayer = true; // Keep this flag
+
+                // Log events based on state changes
+                if (gameState.player.isDead && !gameState.player._wasDeadLastCheck) {
+                    logEvent('You have died!', 'negative');
+                    gameState.player._wasDeadLastCheck = true;
+                }
+            }
+
+            // Update competitors from host (excluding ourselves)
+            if (state.competitors) {
+                state.competitors.forEach(compData => {
+                    if (compData.odlap === gameState.localPlayerId) return; // Skip ourselves
+
+                    // Match by odlap if it exists, otherwise by name
+                    // Note: AIs don't have odlap, so they match by name only
+                    // We must check that odlap is defined before comparing, since undefined === undefined is true
+                    const comp = gameState.competitors.find(c => {
+                        if (compData.odlap && c.odlap) {
+                            return c.odlap === compData.odlap;
+                        }
+                        return c.name === compData.name;
+                    });
+                    if (comp) {
+                        Object.assign(comp, compData);
+                    }
+                });
+            }
+
+            // Also update host player data (host is in state.player, not state.competitors)
+            if (state.player && state.player.odlap) {
+                const hostComp = gameState.competitors.find(c => c.odlap === state.player.odlap);
+                if (hostComp) {
+                    Object.assign(hostComp, state.player);
+                }
+            }
+
+            // Reset choices for new week
+            gameState.choicesMadeThisWeek = [];
+
+            updateUI();
+            renderChoices();
+        }
+
+        // Update ready status display
+        function updateReadyStatus() {
+            // This would update a UI element showing who's ready
+            // For now, it's handled by the button text
+        }
+
+        // Reset to main menu
+        function resetToMainMenu() {
+            if (gameState.peer) {
+                gameState.peer.destroy();
+            }
+            gameState.gameMode = 'single';
+            gameState.roomCode = null;
+            gameState.peer = null;
+            gameState.connections = [];
+            gameState.hostConnection = null;
+            gameState.humanPlayers = [];
+            gameState.localPlayerId = null;
+            gameState.waitingForPlayers = false;
+
+            showScreen('main-menu');
+            document.getElementById('join-waiting').style.display = 'none';
+            document.getElementById('join-btn').disabled = false;
+            document.getElementById('join-error').style.display = 'none';
+        }
+
+        // End week logic (extracted for multiplayer)
+        function endWeekLogic() {
+            const player = gameState.player;
+
+            // Track money at start of week for summary
+            const moneyAtStart = player.money + player.investments;
+
+            // ... all the existing endWeek logic ...
+            // (This gets called instead of the full endWeek in multiplayer)
+
+            // For now, just call the regular week processing
+            // We'll need to refactor endWeek to separate logic from UI updates
+        }
+
+        // ==================== EVENT LISTENERS ====================
+
+        // Single player button
+        document.getElementById('single-player-btn').addEventListener('click', () => {
+            const name = document.getElementById('player-name-input').value.trim() || 'Player';
+            gameState.gameMode = 'single';
+            initGame(name);
+        });
+
+        // Multiplayer button
+        document.getElementById('multiplayer-btn').addEventListener('click', () => {
+            const name = document.getElementById('player-name-input').value.trim();
+            if (!name) {
+                document.getElementById('player-name-input').focus();
+                document.getElementById('player-name-input').style.border = '2px solid #e74c3c';
+                setTimeout(() => {
+                    document.getElementById('player-name-input').style.border = 'none';
+                }, 2000);
+                return;
+            }
+            showScreen('multiplayer-menu');
+        });
+
+        // Back to main menu
+        document.getElementById('back-to-main').addEventListener('click', () => {
+            showScreen('main-menu');
+        });
+
+        // Create room
+        document.getElementById('create-room-btn').addEventListener('click', createRoom);
+
+        // Join room button (show join screen)
+        document.getElementById('join-room-btn').addEventListener('click', () => {
+            showScreen('join-screen');
+        });
+
+        // Back to multiplayer menu
+        document.getElementById('back-to-multi').addEventListener('click', () => {
+            showScreen('multiplayer-menu');
+            document.getElementById('join-error').style.display = 'none';
+            document.getElementById('join-waiting').style.display = 'none';
+            document.getElementById('join-btn').disabled = false;
+        });
+
+        // Join button
+        document.getElementById('join-btn').addEventListener('click', joinRoom);
+
+        // Room code input - auto uppercase and submit on enter
+        document.getElementById('room-code-input').addEventListener('input', (e) => {
+            e.target.value = e.target.value.toUpperCase();
+        });
+
+        document.getElementById('room-code-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                joinRoom();
+            }
+        });
+
+        // Start multiplayer game (host)
+        document.getElementById('start-multiplayer-btn').addEventListener('click', startMultiplayerGame);
+
+        // Leave lobby (host)
+        document.getElementById('leave-lobby').addEventListener('click', () => {
+            broadcastToClients({ type: 'host_left' });
+            resetToMainMenu();
+        });
+
+        // Leave lobby (client)
+        document.getElementById('leave-client-lobby').addEventListener('click', () => {
+            resetToMainMenu();
+        });
+
+        // End week button - now uses signalEndWeek for multiplayer
+        document.getElementById('next-week-btn').addEventListener('click', () => {
+            if (gameState.gameMode === 'single') {
+                endWeek();
+            } else {
+                signalEndWeek();
+            }
+        });
+
+        document.getElementById('play-again-btn').addEventListener('click', () => {
+            document.getElementById('game-over-modal').classList.remove('active');
+            document.getElementById('start-modal').classList.add('active');
+            showScreen('main-menu');
+            document.getElementById('player-name-input').value = '';
+            resetToMainMenu();
+        });
+
+        document.getElementById('insurance-checkbox').addEventListener('change', (e) => {
+            if (gameState.player) {
+                gameState.player.hasHealthInsurance = e.target.checked;
+            }
+        });
+    </script>
+</body>
+</html>
