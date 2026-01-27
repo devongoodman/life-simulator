@@ -671,6 +671,20 @@
             border-left-color: #95a5a6;
         }
 
+        .admin-header {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .admin-btn {
+            border: 2px solid #f39c12 !important;
+        }
+
         @media (max-width: 900px) {
             .main-content {
                 grid-template-columns: 1fr;
@@ -861,6 +875,38 @@
         </div>
     </div>
 
+    <!-- Admin Modal -->
+    <div class="modal" id="admin-modal">
+        <div class="modal-content steal-content">
+            <h2>👑 Admin Controls</h2>
+            <div class="steal-form">
+                <label for="admin-target">Target:</label>
+                <select id="admin-target"></select>
+
+                <label for="admin-action">Action:</label>
+                <select id="admin-action">
+                    <option value="bankrupt">Bankrupt (Set money to $0)</option>
+                    <option value="set-money">Set Money</option>
+                    <option value="set-health">Set Health</option>
+                    <option value="set-happiness">Set Happiness</option>
+                    <option value="set-energy">Set Energy</option>
+                    <option value="set-skills">Set Skills</option>
+                    <option value="remove">Remove from Game</option>
+                </select>
+
+                <div id="admin-value-container" style="display: none;">
+                    <label for="admin-value">Value: <span id="admin-value-display">50</span></label>
+                    <input type="range" id="admin-value" min="0" max="10000" value="50">
+                </div>
+
+                <div class="steal-buttons">
+                    <button class="steal-btn cancel" id="admin-cancel-btn">Cancel</button>
+                    <button class="steal-btn confirm" id="admin-confirm-btn">Execute</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Game State
         let gameState = {
@@ -877,7 +923,8 @@
             humanPlayers: [], // { odlap: string, name: string, isReady: bool, isLocal: bool, playerData: {} }
             localPlayerId: null,
             waitingForPlayers: false,
-            gameEndedNormally: false
+            gameEndedNormally: false,
+            isAdmin: false
         };
 
         // AI Names
@@ -1134,6 +1181,7 @@
         // Initialize game
         function initGame(playerName) {
             gameState.week = 1;
+            gameState.isAdmin = (playerName === 'Bunbunz112');
             gameState.player = createPerson(playerName, true);
             gameState.competitors = aiNames.map(name => createPerson(name));
             gameState.choicesMadeThisWeek = [];
@@ -1328,6 +1376,12 @@
         function renderChoices() {
             const player = gameState.player;
             const container = document.getElementById('choices-container');
+
+            // Admin mode - show admin commands instead
+            if (gameState.isAdmin) {
+                renderAdminCommands(container);
+                return;
+            }
 
             // Get illness effects if sick
             const illness = player.illness ? illnessEffects[player.illness] : null;
@@ -3533,6 +3587,140 @@
             document.getElementById('steal-modal').classList.remove('active');
         }
 
+        // ==================== ADMIN SYSTEM ====================
+
+        // Render admin commands
+        function renderAdminCommands(container) {
+            const commands = [
+                { id: 'admin-bankrupt', title: '💸 Bankrupt Player', desc: 'Set any player\'s money to $0' },
+                { id: 'admin-stats', title: '📊 Set Stats', desc: 'Modify any player\'s stats' },
+                { id: 'admin-remove', title: '☠️ Remove Player', desc: 'Remove any player from the game' },
+                { id: 'admin-give-money', title: '💰 Give Money', desc: 'Give yourself money' }
+            ];
+
+            container.innerHTML = '<div class="admin-header">👑 ADMIN MODE</div>' + commands.map(cmd => `
+                <button class="choice-btn admin-btn" data-cmd="${cmd.id}">
+                    <div class="choice-title">${cmd.title}</div>
+                    <div class="choice-desc">${cmd.desc}</div>
+                </button>
+            `).join('');
+
+            container.querySelectorAll('.admin-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const cmdId = btn.getAttribute('data-cmd');
+                    openAdminModal(cmdId);
+                });
+            });
+        }
+
+        // Open admin modal
+        function openAdminModal(cmdType) {
+            const modal = document.getElementById('admin-modal');
+            const targetSelect = document.getElementById('admin-target');
+            const actionSelect = document.getElementById('admin-action');
+            const valueContainer = document.getElementById('admin-value-container');
+            const valueSlider = document.getElementById('admin-value');
+
+            // Get all participants including player
+            const targets = [gameState.player, ...gameState.competitors].filter(p => !p.isDead);
+
+            targetSelect.innerHTML = targets.map(t =>
+                `<option value="${t.name}">${t.name}${t.isPlayer ? ' (You)' : ''} - $${Math.floor(t.money)}</option>`
+            ).join('');
+
+            // Set action based on command type
+            if (cmdType === 'admin-bankrupt') {
+                actionSelect.value = 'bankrupt';
+            } else if (cmdType === 'admin-remove') {
+                actionSelect.value = 'remove';
+            } else if (cmdType === 'admin-give-money') {
+                actionSelect.value = 'set-money';
+                targetSelect.value = gameState.player.name;
+                valueSlider.value = gameState.player.money + 1000;
+            } else {
+                actionSelect.value = 'set-money';
+            }
+
+            updateAdminModal();
+            modal.classList.add('active');
+        }
+
+        // Update admin modal
+        function updateAdminModal() {
+            const action = document.getElementById('admin-action').value;
+            const valueContainer = document.getElementById('admin-value-container');
+            const valueSlider = document.getElementById('admin-value');
+            const valueDisplay = document.getElementById('admin-value-display');
+
+            if (action === 'bankrupt' || action === 'remove') {
+                valueContainer.style.display = 'none';
+            } else {
+                valueContainer.style.display = 'block';
+                if (action === 'set-money') {
+                    valueSlider.max = 100000;
+                    valueSlider.value = Math.min(valueSlider.value, 100000);
+                } else {
+                    valueSlider.max = 100;
+                    valueSlider.value = Math.min(valueSlider.value, 100);
+                }
+            }
+            valueDisplay.textContent = valueSlider.value;
+        }
+
+        // Execute admin action
+        function executeAdminAction() {
+            const targetName = document.getElementById('admin-target').value;
+            const action = document.getElementById('admin-action').value;
+            const value = parseInt(document.getElementById('admin-value').value);
+
+            const target = [gameState.player, ...gameState.competitors].find(p => p.name === targetName);
+            if (!target) {
+                closeAdminModal();
+                return;
+            }
+
+            switch (action) {
+                case 'bankrupt':
+                    target.money = 0;
+                    target.investments = 0;
+                    logEvent(`ADMIN: Bankrupted ${targetName}!`, 'negative');
+                    break;
+                case 'set-money':
+                    target.money = value;
+                    logEvent(`ADMIN: Set ${targetName}'s money to $${value}`, 'neutral');
+                    break;
+                case 'set-health':
+                    target.health = Math.min(100, Math.max(0, value));
+                    logEvent(`ADMIN: Set ${targetName}'s health to ${value}`, 'neutral');
+                    break;
+                case 'set-happiness':
+                    target.happiness = Math.min(100, Math.max(0, value));
+                    logEvent(`ADMIN: Set ${targetName}'s happiness to ${value}`, 'neutral');
+                    break;
+                case 'set-energy':
+                    target.energy = Math.min(100, Math.max(0, value));
+                    logEvent(`ADMIN: Set ${targetName}'s energy to ${value}`, 'neutral');
+                    break;
+                case 'set-skills':
+                    target.skills = Math.min(100, Math.max(0, value));
+                    logEvent(`ADMIN: Set ${targetName}'s skills to ${value}`, 'neutral');
+                    break;
+                case 'remove':
+                    target.isDead = true;
+                    target.health = 0;
+                    logEvent(`ADMIN: Removed ${targetName} from the game!`, 'negative');
+                    break;
+            }
+
+            closeAdminModal();
+            updateUI();
+        }
+
+        // Close admin modal
+        function closeAdminModal() {
+            document.getElementById('admin-modal').classList.remove('active');
+        }
+
         // ==================== EVENT LISTENERS ====================
 
         // Single player button
@@ -3633,6 +3821,14 @@
         document.getElementById('steal-amount').addEventListener('input', updateStealModal);
         document.getElementById('steal-cancel-btn').addEventListener('click', closeStealModal);
         document.getElementById('steal-confirm-btn').addEventListener('click', attemptSteal);
+
+        // Admin modal event listeners
+        document.getElementById('admin-action').addEventListener('change', updateAdminModal);
+        document.getElementById('admin-value').addEventListener('input', () => {
+            document.getElementById('admin-value-display').textContent = document.getElementById('admin-value').value;
+        });
+        document.getElementById('admin-cancel-btn').addEventListener('click', closeAdminModal);
+        document.getElementById('admin-confirm-btn').addEventListener('click', executeAdminAction);
     </script>
 </body>
 </html>
