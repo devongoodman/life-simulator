@@ -1402,8 +1402,10 @@
                 {
                     id: 'study',
                     title: '📚 Study',
-                    desc: `+${player.happiness < 20 ? 2 : player.happiness < 40 ? 4 : 8} skills (costs 20 energy, $50)${player.happiness < 40 ? ' - unhappy' : ''}`,
-                    disabled: player.energy < 20 || player.money < 50,
+                    desc: player.isInJail
+                        ? `+${player.happiness < 20 ? 2 : player.happiness < 40 ? 4 : 8} skills (costs 20 energy, free in jail)${player.happiness < 40 ? ' - unhappy' : ''}`
+                        : `+${player.happiness < 20 ? 2 : player.happiness < 40 ? 4 : 8} skills (costs 20 energy, $50)${player.happiness < 40 ? ' - unhappy' : ''}`,
+                    disabled: player.energy < 20 || (!player.isInJail && player.money < 50),
                     action: () => {
                         let skillGain = 8;
                         if (player.happiness < 20) {
@@ -1417,7 +1419,9 @@
                         }
                         player.skills = Math.min(100, player.skills + skillGain);
                         player.energy -= 20;
-                        player.money -= 50;
+                        if (!player.isInJail) {
+                            player.money -= 50;
+                        }
                         player.weeksSinceStudied = 0;
                     }
                 },
@@ -1448,14 +1452,22 @@
                 {
                     id: 'socialize',
                     title: '🎉 Socialize',
-                    desc: '+20 happiness (costs 10 energy, $30)',
-                    disabled: player.energy < 10 || player.money < 30,
+                    desc: player.isInJail
+                        ? '+20 happiness (costs 10 energy, free in jail)'
+                        : '+20 happiness (costs 10 energy, $30)',
+                    disabled: player.energy < 10 || (!player.isInJail && player.money < 30),
                     action: () => {
                         player.happiness = Math.min(100, player.happiness + 20);
                         player.energy -= 10;
-                        player.money -= 30;
+                        if (!player.isInJail) {
+                            player.money -= 30;
+                        }
                         player.weeksSinceSocialized = 0;
-                        logEvent('Had fun with friends! Loneliness reset.', 'positive');
+                        if (player.isInJail) {
+                            logEvent('Socialized with fellow inmates. Loneliness reset.', 'positive');
+                        } else {
+                            logEvent('Had fun with friends! Loneliness reset.', 'positive');
+                        }
                     }
                 },
                 {
@@ -1579,10 +1591,10 @@
                 {
                     id: 'doctor',
                     title: '🏥 See Doctor',
-                    desc: player.isInJail ? '(In Jail)' : player.illness
+                    desc: player.illness
                         ? `Cure ${illnessEffects[player.illness].name} + heal (costs $${player.hasHealthInsurance ? 100 : 200})`
                         : `+30 health (costs $${player.hasHealthInsurance ? 75 : 150}${player.hasHealthInsurance ? ' - insured' : ''})`,
-                    disabled: player.isInJail || player.money < (player.illness ? (player.hasHealthInsurance ? 100 : 200) : (player.hasHealthInsurance ? 75 : 150)),
+                    disabled: player.money < (player.illness ? (player.hasHealthInsurance ? 100 : 200) : (player.hasHealthInsurance ? 75 : 150)),
                     action: () => {
                         const baseCost = player.illness ? 200 : 150;
                         const cost = player.hasHealthInsurance ? Math.floor(baseCost * 0.5) : baseCost;
