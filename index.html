@@ -300,6 +300,101 @@
             margin-top: 20px;
         }
 
+        /* Steal Modal Styles */
+        .steal-content {
+            max-width: 400px;
+        }
+
+        .steal-warning {
+            color: #e74c3c;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: rgba(231, 76, 60, 0.2);
+            border-radius: 8px;
+        }
+
+        .steal-form {
+            text-align: left;
+        }
+
+        .steal-form label {
+            display: block;
+            margin: 15px 0 8px;
+            color: #aaa;
+        }
+
+        .steal-form select {
+            width: 100%;
+            padding: 12px;
+            font-size: 1rem;
+            border-radius: 8px;
+            border: 1px solid #444;
+            background: #2a2a4a;
+            color: white;
+        }
+
+        .steal-form input[type="range"] {
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .steal-info {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+
+        .success-chance {
+            color: #2ecc71;
+        }
+
+        .jail-risk {
+            color: #e74c3c;
+        }
+
+        .steal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .steal-btn {
+            flex: 1;
+            padding: 12px 20px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .steal-btn:hover {
+            transform: scale(1.02);
+        }
+
+        .steal-btn.cancel {
+            background: #555;
+            color: white;
+        }
+
+        .steal-btn.confirm {
+            background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+            color: white;
+        }
+
+        .jail-status {
+            background: rgba(231, 76, 60, 0.3);
+            border: 2px solid #e74c3c;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
         .start-modal .modal-content {
             max-width: 500px;
         }
@@ -565,6 +660,17 @@
             border-left-color: #9b59b6;
         }
 
+        .status-warning.jail {
+            background: rgba(52, 73, 94, 0.5);
+            border-left-color: #7f8c8d;
+            font-weight: bold;
+        }
+
+        .status-warning.criminal {
+            background: rgba(127, 140, 141, 0.3);
+            border-left-color: #95a5a6;
+        }
+
         @media (max-width: 900px) {
             .main-content {
                 grid-template-columns: 1fr;
@@ -722,6 +828,36 @@
             <p id="game-over-message"></p>
             <div class="final-standings" id="final-standings"></div>
             <button class="play-again-btn" id="play-again-btn">Play Again</button>
+        </div>
+    </div>
+
+    <!-- Steal Modal -->
+    <div class="modal" id="steal-modal">
+        <div class="modal-content steal-content">
+            <h2>🦹 Steal Money</h2>
+            <p class="steal-warning">Warning: If caught, you'll go to jail and get a criminal record!</p>
+
+            <div class="steal-form">
+                <label for="steal-target">Target:</label>
+                <select id="steal-target"></select>
+
+                <label for="steal-amount">Amount: $<span id="steal-amount-display">100</span></label>
+                <input type="range" id="steal-amount" min="10" max="1000" value="100" step="10">
+
+                <div class="steal-info">
+                    <div class="success-chance">
+                        Success Chance: <span id="steal-chance">70%</span>
+                    </div>
+                    <div class="jail-risk">
+                        If caught: <span id="jail-time">2 weeks</span> in jail
+                    </div>
+                </div>
+
+                <div class="steal-buttons">
+                    <button class="steal-btn cancel" id="steal-cancel-btn">Cancel</button>
+                    <button class="steal-btn confirm" id="steal-confirm-btn">Attempt Steal</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -926,7 +1062,10 @@
                 weeksSinceDoctor: 0,
                 moneyAtStartOfWeek: 1000,
                 illness: null, // null, 'mild', 'moderate', 'severe', 'critical'
-                illnessWeeks: 0
+                illnessWeeks: 0,
+                isInJail: false,
+                jailWeeksRemaining: 0,
+                hasCriminalRecord: false
             };
         }
 
@@ -1073,6 +1212,16 @@
             const container = document.getElementById('status-warnings');
             let warnings = [];
 
+            // Jail status (highest priority)
+            if (player.isInJail) {
+                warnings.push({ text: `🔒 IN JAIL - ${player.jailWeeksRemaining} week${player.jailWeeksRemaining > 1 ? 's' : ''} remaining`, type: 'jail' });
+            }
+
+            // Criminal record warning
+            if (player.hasCriminalRecord) {
+                warnings.push({ text: '⚠️ Criminal Record - Cannot get jobs paying over $400/week', type: 'criminal' });
+            }
+
             if (player.isBurnedOut) {
                 warnings.push({ text: 'BURNED OUT - Energy capped at 50', type: 'burnout' });
             }
@@ -1214,8 +1363,8 @@
                 {
                     id: 'work',
                     title: '💼 Work',
-                    desc: tooSickToWork ? 'Too sick to work!' : `Earn $${effectiveSalary}${salaryPenalty} (costs ${workEnergyCost} energy)`,
-                    disabled: player.job.salary === 0 || player.energy < workEnergyCost || player.health < 20 || player.isBurnedOut || tooSickToWork,
+                    desc: player.isInJail ? '(In Jail)' : tooSickToWork ? 'Too sick to work!' : `Earn $${effectiveSalary}${salaryPenalty} (costs ${workEnergyCost} energy)`,
+                    disabled: player.isInJail || player.job.salary === 0 || player.energy < workEnergyCost || player.health < 20 || player.isBurnedOut || tooSickToWork,
                     action: () => {
                         player.money += effectiveSalary;
                         player.energy -= workEnergyCost;
@@ -1312,8 +1461,8 @@
                 {
                     id: 'gamble',
                     title: '🎰 Gamble',
-                    desc: 'Risk $100 for a chance to win big!',
-                    disabled: player.money < 100,
+                    desc: player.isInJail ? '(In Jail)' : 'Risk $100 for a chance to win big!',
+                    disabled: player.isInJail || player.money < 100,
                     action: () => {
                         player.money -= 100;
                         const roll = Math.random();
@@ -1334,8 +1483,8 @@
                 {
                     id: 'invest',
                     title: '📈 Invest',
-                    desc: 'Invest $200 (grows 5-15% weekly)',
-                    disabled: player.money < 200,
+                    desc: player.isInJail ? '(In Jail)' : 'Invest $200 (grows 5-15% weekly)',
+                    disabled: player.isInJail || player.money < 200,
                     action: () => {
                         player.money -= 200;
                         player.investments += 200;
@@ -1345,8 +1494,8 @@
                 {
                     id: 'withdraw',
                     title: '💵 Withdraw',
-                    desc: 'Cash out investments',
-                    disabled: player.investments < 50,
+                    desc: player.isInJail ? '(In Jail)' : 'Cash out investments',
+                    disabled: player.isInJail || player.investments < 50,
                     action: () => {
                         player.money += player.investments;
                         logEvent(`Withdrew $${Math.floor(player.investments)} from investments.`, 'positive');
@@ -1356,8 +1505,8 @@
                 {
                     id: 'job-search',
                     title: '🔍 Job Search',
-                    desc: `Look for a job (${Math.floor(60 * player.energy / 100)}% chance)`,
-                    disabled: player.energy < 10,
+                    desc: player.isInJail ? '(In Jail)' : `Look for a job (${Math.floor(60 * player.energy / 100)}% chance)`,
+                    disabled: player.isInJail || player.energy < 10,
                     action: () => {
                         player.energy -= 10;
 
@@ -1365,6 +1514,11 @@
                         let availablePositions = [];
                         companies.forEach(company => {
                             company.positions.forEach((pos, index) => {
+                                // Criminal record blocks jobs paying over $400/week
+                                if (player.hasCriminalRecord && pos.salary > 400) {
+                                    return; // Skip this job
+                                }
+
                                 // Can apply if: skills meet requirement AND (unemployed OR better salary OR same company promotion)
                                 const meetsRequirement = player.skills >= pos.requirement;
                                 const isBetterPay = pos.salary > player.job.salary;
@@ -1401,15 +1555,19 @@
                                 }
                             }
                         } else {
-                            logEvent('No jobs available for your skill level. Study more!', 'negative');
+                            if (player.hasCriminalRecord) {
+                                logEvent('Criminal record limits your options. No suitable jobs found.', 'negative');
+                            } else {
+                                logEvent('No jobs available for your skill level. Study more!', 'negative');
+                            }
                         }
                     }
                 },
                 {
                     id: 'side-hustle',
                     title: '💡 Side Hustle',
-                    desc: 'Quick cash: $50-150 (costs 25 energy)',
-                    disabled: player.energy < 25 || player.isBurnedOut,
+                    desc: player.isInJail ? '(In Jail)' : 'Quick cash: $50-150 (costs 25 energy)',
+                    disabled: player.isInJail || player.energy < 25 || player.isBurnedOut,
                     action: () => {
                         player.energy -= 25;
                         player.consecutiveWorkWeeks++;
@@ -1421,10 +1579,10 @@
                 {
                     id: 'doctor',
                     title: '🏥 See Doctor',
-                    desc: player.illness
+                    desc: player.isInJail ? '(In Jail)' : player.illness
                         ? `Cure ${illnessEffects[player.illness].name} + heal (costs $${player.hasHealthInsurance ? 100 : 200})`
                         : `+30 health (costs $${player.hasHealthInsurance ? 75 : 150}${player.hasHealthInsurance ? ' - insured' : ''})`,
-                    disabled: player.money < (player.illness ? (player.hasHealthInsurance ? 100 : 200) : (player.hasHealthInsurance ? 75 : 150)),
+                    disabled: player.isInJail || player.money < (player.illness ? (player.hasHealthInsurance ? 100 : 200) : (player.hasHealthInsurance ? 75 : 150)),
                     action: () => {
                         const baseCost = player.illness ? 200 : 150;
                         const cost = player.hasHealthInsurance ? Math.floor(baseCost * 0.5) : baseCost;
@@ -1445,8 +1603,8 @@
                 {
                     id: 'risky-investment',
                     title: '🚀 Risky Investment',
-                    desc: 'Invest $500 - could double or lose it all!',
-                    disabled: player.money < 500,
+                    desc: player.isInJail ? '(In Jail)' : 'Invest $500 - could double or lose it all!',
+                    disabled: player.isInJail || player.money < 500,
                     action: () => {
                         player.money -= 500;
                         if (Math.random() < 0.45) {
@@ -1455,6 +1613,15 @@
                         } else {
                             logEvent('Risky investment failed. Lost $500.', 'negative');
                         }
+                    }
+                },
+                {
+                    id: 'steal',
+                    title: '🦹 Steal Money',
+                    desc: player.isInJail ? '(In Jail)' : 'Attempt to steal from another player',
+                    disabled: player.isInJail || gameState.competitors.filter(c => !c.isDead && c.money > 0).length === 0,
+                    action: () => {
+                        openStealModal();
                     }
                 }
             ];
@@ -1840,6 +2007,18 @@
             // Track money at start of week for summary
             const moneyAtStart = player.money + player.investments;
 
+            // Jail countdown
+            if (player.isInJail) {
+                player.jailWeeksRemaining--;
+                if (player.jailWeeksRemaining <= 0) {
+                    player.isInJail = false;
+                    player.jailWeeksRemaining = 0;
+                    logEvent('Released from jail! Time to start fresh.', 'positive');
+                } else {
+                    logEvent(`Still in jail. ${player.jailWeeksRemaining} week${player.jailWeeksRemaining > 1 ? 's' : ''} remaining.`, 'negative');
+                }
+            }
+
             // Player's investments - can grow or shrink
             if (player.investments > 0) {
                 const roll = Math.random();
@@ -1897,20 +2076,29 @@
                 logEvent('Everything is falling apart...', 'negative');
             }
 
-            // Weekly decay and costs - itemized
+            // Weekly decay and costs - itemized (reduced in jail)
             const rent = 40;
-            const food = 25;
-            const utilities = 15;
+            const food = player.isInJail ? 0 : 25;  // Jail provides food
+            const utilities = player.isInJail ? 0 : 15;  // No utilities in jail
             const insurance = player.hasHealthInsurance ? 50 : 0;
             const totalExpenses = rent + food + utilities + insurance;
 
             player.money -= totalExpenses;
 
-            let expenseLog = `Weekly: Rent -$${rent}, Food -$${food}, Utilities -$${utilities}`;
-            if (insurance > 0) {
-                expenseLog += `, Insurance -$${insurance}`;
+            let expenseLog;
+            if (player.isInJail) {
+                expenseLog = `Weekly: Rent -$${rent}`;
+                if (insurance > 0) {
+                    expenseLog += `, Insurance -$${insurance}`;
+                }
+                expenseLog += ` (Jail provides food/utilities)`;
+            } else {
+                expenseLog = `Weekly: Rent -$${rent}, Food -$${food}, Utilities -$${utilities}`;
+                if (insurance > 0) {
+                    expenseLog += `, Insurance -$${insurance}`;
+                }
+                expenseLog += ` (Total: -$${totalExpenses})`;
             }
-            expenseLog += ` (Total: -$${totalExpenses})`;
             logEvent(expenseLog, 'neutral');
 
             // Social isolation tracking
@@ -2916,6 +3104,18 @@
             // Track money at start
             const moneyAtStart = player.money + player.investments;
 
+            // Jail countdown
+            if (player.isInJail) {
+                player.jailWeeksRemaining--;
+                if (player.jailWeeksRemaining <= 0) {
+                    player.isInJail = false;
+                    player.jailWeeksRemaining = 0;
+                    log('Released from jail! Time to start fresh.', 'positive');
+                } else {
+                    log(`Still in jail. ${player.jailWeeksRemaining} week${player.jailWeeksRemaining > 1 ? 's' : ''} remaining.`, 'negative');
+                }
+            }
+
             // Investments
             if (player.investments > 0) {
                 const roll = Math.random();
@@ -2965,11 +3165,18 @@
 
             if (lowStats >= 2) log('Everything is falling apart...', 'negative');
 
-            // Weekly expenses
+            // Weekly expenses (reduced in jail)
+            const rent = 40;
+            const food = player.isInJail ? 0 : 25;
+            const utilities = player.isInJail ? 0 : 15;
             const insurance = player.hasHealthInsurance ? 50 : 0;
-            const totalExpenses = 40 + 25 + 15 + insurance;
+            const totalExpenses = rent + food + utilities + insurance;
             player.money -= totalExpenses;
-            log(`Weekly expenses: -$${totalExpenses}`, 'neutral');
+            if (player.isInJail) {
+                log(`Weekly expenses: -$${totalExpenses} (jail provides food/utilities)`, 'neutral');
+            } else {
+                log(`Weekly expenses: -$${totalExpenses}`, 'neutral');
+            }
 
             // Tracking
             player.weeksSinceSocialized++;
@@ -3192,6 +3399,128 @@
             // We'll need to refactor endWeek to separate logic from UI updates
         }
 
+        // ==================== STEALING SYSTEM ====================
+
+        // Open the steal modal
+        function openStealModal() {
+            const modal = document.getElementById('steal-modal');
+            const targetSelect = document.getElementById('steal-target');
+            const amountSlider = document.getElementById('steal-amount');
+
+            // Get all living competitors with money
+            const targets = gameState.competitors.filter(c => !c.isDead && c.money > 0);
+
+            if (targets.length === 0) {
+                logEvent('No one to steal from!', 'negative');
+                return;
+            }
+
+            // Populate target dropdown
+            targetSelect.innerHTML = targets.map(t =>
+                `<option value="${t.name}" data-money="${Math.floor(t.money)}">${t.name} - $${Math.floor(t.money)}</option>`
+            ).join('');
+
+            // Set slider max to target's money
+            const firstTarget = targets[0];
+            amountSlider.max = Math.floor(firstTarget.money);
+            amountSlider.value = Math.min(100, Math.floor(firstTarget.money));
+
+            updateStealModal();
+            modal.classList.add('active');
+        }
+
+        // Update steal modal display
+        function updateStealModal() {
+            const targetSelect = document.getElementById('steal-target');
+            const amountSlider = document.getElementById('steal-amount');
+            const amountDisplay = document.getElementById('steal-amount-display');
+            const chanceDisplay = document.getElementById('steal-chance');
+            const jailDisplay = document.getElementById('jail-time');
+
+            const selectedOption = targetSelect.options[targetSelect.selectedIndex];
+            const targetMoney = parseInt(selectedOption.dataset.money) || 1000;
+            const amount = parseInt(amountSlider.value);
+
+            // Update slider max when target changes
+            amountSlider.max = targetMoney;
+            if (amount > targetMoney) {
+                amountSlider.value = targetMoney;
+            }
+
+            // Display amount
+            amountDisplay.textContent = amount;
+
+            // Calculate success chance: 80% base, decreases as amount increases relative to target's money
+            const successChance = Math.max(0.05, 0.80 - (amount / targetMoney) * 0.6);
+            chanceDisplay.textContent = Math.floor(successChance * 100) + '%';
+
+            // Color code the chance
+            if (successChance >= 0.6) {
+                chanceDisplay.style.color = '#2ecc71';
+            } else if (successChance >= 0.3) {
+                chanceDisplay.style.color = '#f39c12';
+            } else {
+                chanceDisplay.style.color = '#e74c3c';
+            }
+
+            // Calculate jail time: 2-8 weeks based on amount
+            const jailWeeks = Math.min(8, Math.max(2, Math.floor(amount / 200) + 2));
+            jailDisplay.textContent = jailWeeks + ' week' + (jailWeeks > 1 ? 's' : '');
+        }
+
+        // Attempt to steal
+        function attemptSteal() {
+            const targetSelect = document.getElementById('steal-target');
+            const amountSlider = document.getElementById('steal-amount');
+
+            const targetName = targetSelect.value;
+            const amount = parseInt(amountSlider.value);
+
+            const target = gameState.competitors.find(c => c.name === targetName);
+            if (!target) {
+                closeStealModal();
+                return;
+            }
+
+            const targetMoney = target.money;
+            const successChance = Math.max(0.05, 0.80 - (amount / targetMoney) * 0.6);
+            const jailWeeks = Math.min(8, Math.max(2, Math.floor(amount / 200) + 2));
+
+            closeStealModal();
+
+            // Roll for success
+            if (Math.random() < successChance) {
+                // Success!
+                const actualAmount = Math.min(amount, target.money);
+                target.money -= actualAmount;
+                gameState.player.money += actualAmount;
+                logEvent(`Successfully stole $${actualAmount} from ${targetName}!`, 'positive');
+            } else {
+                // Caught! Go to jail
+                gameState.player.isInJail = true;
+                gameState.player.jailWeeksRemaining = jailWeeks;
+                gameState.player.hasCriminalRecord = true;
+
+                // Lose job when going to jail
+                if (gameState.player.job.salary > 0) {
+                    logEvent(`Caught stealing! Fired from ${gameState.player.job.title} and sentenced to ${jailWeeks} weeks in jail!`, 'negative');
+                    gameState.player.job = { ...unemployed };
+                } else {
+                    logEvent(`Caught stealing! Sentenced to ${jailWeeks} weeks in jail!`, 'negative');
+                }
+            }
+
+            // Mark steal as used this week
+            gameState.choicesMadeThisWeek.push('steal');
+            updateUI();
+            renderChoices();
+        }
+
+        // Close steal modal
+        function closeStealModal() {
+            document.getElementById('steal-modal').classList.remove('active');
+        }
+
         // ==================== EVENT LISTENERS ====================
 
         // Single player button
@@ -3286,6 +3615,12 @@
                 gameState.player.hasHealthInsurance = e.target.checked;
             }
         });
+
+        // Steal modal event listeners
+        document.getElementById('steal-target').addEventListener('change', updateStealModal);
+        document.getElementById('steal-amount').addEventListener('input', updateStealModal);
+        document.getElementById('steal-cancel-btn').addEventListener('click', closeStealModal);
+        document.getElementById('steal-confirm-btn').addEventListener('click', attemptSteal);
     </script>
 </body>
 </html>
