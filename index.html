@@ -999,6 +999,15 @@
             gameState.competitors = aiNames.map(name => createPerson(name));
             gameState.choicesMadeThisWeek = [];
 
+            // Reset multiplayer state to prevent glitches
+            gameState.waitingForPlayers = false;
+            gameState.humanPlayers = [];
+
+            // Reset the end week button state
+            const nextWeekBtn = document.getElementById('next-week-btn');
+            nextWeekBtn.textContent = 'End Week →';
+            nextWeekBtn.disabled = false;
+
             // Reset the event log
             const eventLog = document.getElementById('event-log');
             eventLog.innerHTML = '<p class="event-neutral">Welcome! Make choices to survive the year.</p>';
@@ -2221,8 +2230,22 @@
             }];
             gameState.connections = [];
 
+            // PeerJS config with ICE servers for better connectivity across networks
+            const peerConfig = {
+                config: {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' },
+                        { urls: 'stun:stun2.l.google.com:19302' },
+                        { urls: 'stun:stun3.l.google.com:19302' },
+                        { urls: 'stun:stun4.l.google.com:19302' },
+                        { urls: 'stun:global.stun.twilio.com:3478' }
+                    ]
+                }
+            };
+
             // Create PeerJS peer
-            gameState.peer = new Peer('lifesim-' + roomCode);
+            gameState.peer = new Peer('lifesim-' + roomCode, peerConfig);
 
             gameState.peer.on('open', (id) => {
                 console.log('Host peer opened with ID:', id);
@@ -2379,8 +2402,22 @@
             gameState.roomCode = roomCode;
             gameState.localPlayerId = playerId;
 
+            // PeerJS config with ICE servers for better connectivity across networks
+            const peerConfig = {
+                config: {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' },
+                        { urls: 'stun:stun2.l.google.com:19302' },
+                        { urls: 'stun:stun3.l.google.com:19302' },
+                        { urls: 'stun:stun4.l.google.com:19302' },
+                        { urls: 'stun:global.stun.twilio.com:3478' }
+                    ]
+                }
+            };
+
             // Create peer for client
-            gameState.peer = new Peer();
+            gameState.peer = new Peer(peerConfig);
 
             gameState.peer.on('open', () => {
                 // Connect to host
@@ -2615,6 +2652,12 @@
             }
 
             gameState.choicesMadeThisWeek = [];
+            gameState.waitingForPlayers = false;
+
+            // Reset the end week button state
+            const nextWeekBtn = document.getElementById('next-week-btn');
+            nextWeekBtn.textContent = 'End Week →';
+            nextWeekBtn.disabled = false;
 
             // Send game start to all clients
             broadcastToClients({
@@ -2667,6 +2710,12 @@
             }
 
             gameState.choicesMadeThisWeek = [];
+            gameState.waitingForPlayers = false;
+
+            // Reset the end week button state
+            const nextWeekBtn = document.getElementById('next-week-btn');
+            nextWeekBtn.textContent = 'End Week →';
+            nextWeekBtn.disabled = false;
 
             document.getElementById('start-modal').classList.remove('active');
             updateUI();
