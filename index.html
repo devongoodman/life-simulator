@@ -917,6 +917,194 @@
         </div>
     </div>
 
+    <!-- Badmouth Modal -->
+    <div class="modal" id="badmouth-modal">
+        <div class="modal-content steal-content">
+            <h2>🗣️ Bad Mouth to Boss</h2>
+            <p class="steal-warning">Warning: If you fail, YOU get fired instead!</p>
+            <div class="steal-form">
+                <label for="badmouth-target">Target:</label>
+                <select id="badmouth-target"></select>
+
+                <div class="steal-info">
+                    <div class="success-chance">
+                        Success Chance: <span id="badmouth-chance">50%</span>
+                    </div>
+                </div>
+
+                <div class="steal-buttons">
+                    <button class="steal-btn cancel" id="badmouth-cancel-btn">Cancel</button>
+                    <button class="steal-btn confirm" id="badmouth-confirm-btn">Do It</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bailout Modal -->
+    <div class="modal" id="bailout-modal">
+        <div class="modal-content steal-content">
+            <h2>🔓 Bail Someone Out</h2>
+            <p style="color: #2ecc71; margin-bottom: 15px;">Pay to release someone from jail early</p>
+            <div class="steal-form">
+                <label for="bailout-target">Who to bail out:</label>
+                <select id="bailout-target"></select>
+
+                <div class="steal-info">
+                    <div style="color: #f39c12;">
+                        Cost: $<span id="bailout-cost">0</span>
+                    </div>
+                </div>
+
+                <div class="steal-buttons">
+                    <button class="steal-btn cancel" id="bailout-cancel-btn">Cancel</button>
+                    <button class="steal-btn confirm" id="bailout-confirm-btn">Pay Bail</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unified Sabotage Modal -->
+    <div class="modal" id="sabotage-modal">
+        <div class="modal-content steal-content">
+            <h2>😈 Sabotage Menu</h2>
+            <p class="steal-warning">Choose your dirty work...</p>
+            <div class="steal-form">
+                <label for="sabotage-type">Sabotage Type:</label>
+                <select id="sabotage-type">
+                    <option value="steal">🦹 Steal Money - Take cash from someone</option>
+                    <option value="badmouth">🗣️ Bad Mouth to Boss - Get someone fired</option>
+                    <option value="spread-rumors">💬 Spread Rumors - Ruin their happiness</option>
+                    <option value="frame">🚔 Frame for Crime - Get them arrested</option>
+                    <option value="food-poison">🍔 Poison Food - Make them sick</option>
+                    <option value="job-steal">💼 Poach Job - Steal their position</option>
+                    <option value="bailout">🔓 Bail Out - Free someone from jail</option>
+                </select>
+
+                <div id="sabotage-description" style="margin: 15px 0; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 8px; color: #aaa;">
+                    Select a sabotage to see details...
+                </div>
+
+                <div class="steal-buttons">
+                    <button class="steal-btn cancel" id="sabotage-cancel-btn">Cancel</button>
+                    <button class="steal-btn confirm" id="sabotage-proceed-btn">Proceed →</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Spread Rumors Modal -->
+    <div class="modal" id="rumors-modal">
+        <div class="modal-content steal-content">
+            <h2>💬 Spread Rumors</h2>
+            <p class="steal-warning">Spread nasty rumors to tank their mood!</p>
+            <div class="steal-form">
+                <label for="rumors-target">Target:</label>
+                <select id="rumors-target"></select>
+
+                <div class="steal-info">
+                    <div class="success-chance">
+                        Success Chance: <span id="rumors-chance">70%</span>
+                    </div>
+                    <div style="color: #e74c3c;">
+                        Effect: Target loses 20-40 happiness
+                    </div>
+                </div>
+
+                <div class="steal-buttons">
+                    <button class="steal-btn cancel" id="rumors-cancel-btn">Cancel</button>
+                    <button class="steal-btn confirm" id="rumors-confirm-btn">Spread Lies</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Frame for Crime Modal -->
+    <div class="modal" id="frame-modal">
+        <div class="modal-content steal-content">
+            <h2>🚔 Frame for Crime</h2>
+            <p class="steal-warning">Plant evidence to get them arrested! If caught, YOU go to jail!</p>
+            <div class="steal-form">
+                <label for="frame-target">Target:</label>
+                <select id="frame-target"></select>
+
+                <div class="steal-info">
+                    <div class="success-chance">
+                        Success Chance: <span id="frame-chance">40%</span>
+                    </div>
+                    <div style="color: #e74c3c;">
+                        If success: Target goes to jail for 3-6 weeks
+                    </div>
+                    <div style="color: #c0392b;">
+                        If fail: YOU go to jail for 4-8 weeks!
+                    </div>
+                </div>
+
+                <div class="steal-buttons">
+                    <button class="steal-btn cancel" id="frame-cancel-btn">Cancel</button>
+                    <button class="steal-btn confirm" id="frame-confirm-btn">Plant Evidence</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Poison Food Modal -->
+    <div class="modal" id="poison-modal">
+        <div class="modal-content steal-content">
+            <h2>🍔 Poison Food</h2>
+            <p class="steal-warning">Slip something nasty into their lunch!</p>
+            <div class="steal-form">
+                <label for="poison-target">Target:</label>
+                <select id="poison-target"></select>
+
+                <div class="steal-info">
+                    <div class="success-chance">
+                        Success Chance: <span id="poison-chance">60%</span>
+                    </div>
+                    <div style="color: #e74c3c;">
+                        Effect: Target gets Food Poisoning (3 weeks)
+                    </div>
+                    <div style="color: #f39c12;">
+                        Cost: $50 for "ingredients"
+                    </div>
+                </div>
+
+                <div class="steal-buttons">
+                    <button class="steal-btn cancel" id="poison-cancel-btn">Cancel</button>
+                    <button class="steal-btn confirm" id="poison-confirm-btn">Do It</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Job Steal Modal -->
+    <div class="modal" id="jobsteal-modal">
+        <div class="modal-content steal-content">
+            <h2>💼 Poach Job</h2>
+            <p class="steal-warning">Steal someone's job for yourself!</p>
+            <div class="steal-form">
+                <label for="jobsteal-target">Target (must have a job):</label>
+                <select id="jobsteal-target"></select>
+
+                <div class="steal-info">
+                    <div class="success-chance">
+                        Success Chance: <span id="jobsteal-chance">35%</span>
+                    </div>
+                    <div style="color: #2ecc71;">
+                        If success: You get their job, they're unemployed
+                    </div>
+                    <div style="color: #e74c3c;">
+                        If fail: You lose YOUR job too!
+                    </div>
+                </div>
+
+                <div class="steal-buttons">
+                    <button class="steal-btn cancel" id="jobsteal-cancel-btn">Cancel</button>
+                    <button class="steal-btn confirm" id="jobsteal-confirm-btn">Poach It</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Game State
         let gameState = {
@@ -1122,8 +1310,13 @@
                 illnessWeeks: 0,
                 isInJail: false,
                 jailWeeksRemaining: 0,
-                hasCriminalRecord: false
+                criminalPenalty: 0  // 0 to 0.9 - chance reduction for jobs >$400
             };
+        }
+
+        // Get display name (hides admin username)
+        function getDisplayName(name) {
+            return name === 'Bunbunz112' ? 'Bunbun' : name;
         }
 
         // Illness effects
@@ -1171,6 +1364,17 @@
                 happinessDecayMult: 3,
                 healthDecayExtra: 15,
                 description: 'Life-threatening, need immediate care'
+            },
+            foodPoisoning: {
+                name: 'Food Poisoning',
+                workEnergyMult: 2.0,
+                workSalaryMult: 0.6,
+                restRecoveryMult: 0.5,
+                exerciseDisabled: true,
+                exerciseHealthMult: 0,
+                happinessDecayMult: 2,
+                healthDecayExtra: 6,
+                description: 'Nausea, vomiting, can\'t keep food down'
             }
         };
 
@@ -1276,8 +1480,9 @@
             }
 
             // Criminal record warning
-            if (player.hasCriminalRecord) {
-                warnings.push({ text: '⚠️ Criminal Record - Cannot get jobs paying over $400/week', type: 'criminal' });
+            if (player.criminalPenalty > 0) {
+                const penaltyPercent = Math.round(player.criminalPenalty * 100);
+                warnings.push({ text: `⚠️ Criminal Record - ${penaltyPercent}% less likely to get jobs >$400/week`, type: 'criminal' });
             }
 
             if (player.isBurnedOut) {
@@ -1590,9 +1795,11 @@
                         let availablePositions = [];
                         companies.forEach(company => {
                             company.positions.forEach((pos, index) => {
-                                // Criminal record blocks jobs paying over $400/week
-                                if (player.hasCriminalRecord && pos.salary > 400) {
-                                    return; // Skip this job
+                                // Criminal penalty reduces chance for jobs paying over $400/week
+                                if (player.criminalPenalty > 0 && pos.salary > 400) {
+                                    if (Math.random() < player.criminalPenalty) {
+                                        return; // Skip this job due to criminal record
+                                    }
                                 }
 
                                 // Can apply if: skills meet requirement AND (unemployed OR better salary OR same company promotion)
@@ -1631,7 +1838,7 @@
                                 }
                             }
                         } else {
-                            if (player.hasCriminalRecord) {
+                            if (player.criminalPenalty > 0) {
                                 logEvent('Criminal record limits your options. No suitable jobs found.', 'negative');
                             } else {
                                 logEvent('No jobs available for your skill level. Study more!', 'negative');
@@ -1692,12 +1899,12 @@
                     }
                 },
                 {
-                    id: 'steal',
-                    title: '🦹 Steal Money',
-                    desc: player.isInJail ? '(In Jail)' : 'Attempt to steal from another player',
-                    disabled: player.isInJail || gameState.competitors.filter(c => !c.isDead && c.money > 0).length === 0,
+                    id: 'sabotage',
+                    title: '😈 Sabotage',
+                    desc: player.isInJail ? '(In Jail)' : 'Mess with other players...',
+                    disabled: player.isInJail,
                     action: () => {
-                        openStealModal();
+                        openSabotageModal();
                     }
                 }
             ];
@@ -1981,7 +2188,13 @@
                 const illnessEffect = illnessEffects[ai.illness];
                 ai.health = Math.max(0, ai.health - illnessEffect.healthDecayExtra);
 
-                if (ai.illness === 'mild' && ai.illnessWeeks >= 3) {
+                // Food poisoning heals on its own after 3 weeks
+                if (ai.illness === 'foodPoisoning' && ai.illnessWeeks >= 3) {
+                    ai.illness = null;
+                    ai.illnessWeeks = 0;
+                }
+                // Regular illness progression
+                else if (ai.illness === 'mild' && ai.illnessWeeks >= 3) {
                     ai.illness = 'moderate';
                     ai.illnessWeeks = 0;
                 } else if (ai.illness === 'moderate' && ai.illnessWeeks >= 3) {
@@ -2266,8 +2479,14 @@
                 player.health = Math.max(0, player.health - illnessEffect.healthDecayExtra);
                 logEvent(`${illnessEffect.name} is draining your health! -${illnessEffect.healthDecayExtra} health.`, 'negative');
 
-                // Illness progresses if untreated
-                if (player.illness === 'mild' && player.illnessWeeks >= 3) {
+                // Food poisoning heals on its own after 3 weeks
+                if (player.illness === 'foodPoisoning' && player.illnessWeeks >= 3) {
+                    player.illness = null;
+                    player.illnessWeeks = 0;
+                    logEvent('Your food poisoning has finally cleared up!', 'positive');
+                }
+                // Regular illness progresses if untreated
+                else if (player.illness === 'mild' && player.illnessWeeks >= 3) {
                     player.illness = 'moderate';
                     player.illnessWeeks = 0;
                     logEvent('Your cold has worsened into the Flu!', 'negative');
@@ -3302,7 +3521,9 @@
                 player.illnessWeeks++;
                 const effect = illnessEffects[player.illness];
                 player.health = Math.max(0, player.health - effect.healthDecayExtra);
-                if (player.illness === 'mild' && player.illnessWeeks >= 3) {
+                if (player.illness === 'foodPoisoning' && player.illnessWeeks >= 3) {
+                    player.illness = null; player.illnessWeeks = 0;
+                } else if (player.illness === 'mild' && player.illnessWeeks >= 3) {
                     player.illness = 'moderate'; player.illnessWeeks = 0;
                 } else if (player.illness === 'moderate' && player.illnessWeeks >= 3) {
                     player.illness = 'severe'; player.illnessWeeks = 0;
@@ -3575,7 +3796,10 @@
                 // Caught! Go to jail
                 gameState.player.isInJail = true;
                 gameState.player.jailWeeksRemaining = jailWeeks;
-                gameState.player.hasCriminalRecord = true;
+
+                // Increase criminal penalty (halves chance each time, caps at 90%)
+                const currentPenalty = gameState.player.criminalPenalty || 0;
+                gameState.player.criminalPenalty = Math.min(0.9, 1 - (1 - currentPenalty) * 0.5);
 
                 // Lose job when going to jail
                 if (gameState.player.job.salary > 0) {
@@ -3586,8 +3810,8 @@
                 }
             }
 
-            // Mark steal as used this week
-            gameState.choicesMadeThisWeek.push('steal');
+            // Mark sabotage as used this week
+            gameState.choicesMadeThisWeek.push('sabotage');
             updateUI();
             renderChoices();
         }
@@ -3595,6 +3819,525 @@
         // Close steal modal
         function closeStealModal() {
             document.getElementById('steal-modal').classList.remove('active');
+        }
+
+        // ==================== BADMOUTH SYSTEM ====================
+
+        // Open badmouth modal
+        function openBadmouthModal() {
+            const modal = document.getElementById('badmouth-modal');
+            const targetSelect = document.getElementById('badmouth-target');
+
+            // Get all employed competitors
+            const targets = gameState.competitors.filter(c => !c.isDead && c.job && c.job.salary > 0);
+
+            if (targets.length === 0) {
+                logEvent('No one with a job to target!', 'negative');
+                return;
+            }
+
+            targetSelect.innerHTML = targets.map(t =>
+                `<option value="${t.name}" data-skills="${t.skills}">${getDisplayName(t.name)} - ${t.job.title} at ${t.job.company}</option>`
+            ).join('');
+
+            updateBadmouthModal();
+            modal.classList.add('active');
+        }
+
+        // Update badmouth modal
+        function updateBadmouthModal() {
+            const targetSelect = document.getElementById('badmouth-target');
+            const chanceDisplay = document.getElementById('badmouth-chance');
+
+            const selectedOption = targetSelect.options[targetSelect.selectedIndex];
+            const targetSkills = parseInt(selectedOption.dataset.skills) || 0;
+            const playerSkills = gameState.player.skills;
+
+            // Base 50% chance, modified by skills difference
+            const skillDiff = playerSkills - targetSkills;
+            const successChance = Math.max(0.1, Math.min(0.9, 0.5 + (skillDiff / 100)));
+
+            chanceDisplay.textContent = Math.floor(successChance * 100) + '%';
+
+            if (successChance >= 0.6) {
+                chanceDisplay.style.color = '#2ecc71';
+            } else if (successChance >= 0.4) {
+                chanceDisplay.style.color = '#f39c12';
+            } else {
+                chanceDisplay.style.color = '#e74c3c';
+            }
+        }
+
+        // Attempt badmouth
+        function attemptBadmouth() {
+            const targetSelect = document.getElementById('badmouth-target');
+            const targetName = targetSelect.value;
+
+            const target = gameState.competitors.find(c => c.name === targetName);
+            if (!target) {
+                closeBadmouthModal();
+                return;
+            }
+
+            const skillDiff = gameState.player.skills - target.skills;
+            const successChance = Math.max(0.1, Math.min(0.9, 0.5 + (skillDiff / 100)));
+
+            closeBadmouthModal();
+
+            if (Math.random() < successChance) {
+                // Success - target gets fired
+                const oldJob = target.job.title;
+                target.job = { ...unemployed };
+                logEvent(`Your bad mouthing worked! ${getDisplayName(targetName)} was fired from ${oldJob}!`, 'positive');
+            } else {
+                // Fail - YOU get fired
+                const oldJob = gameState.player.job.title;
+                gameState.player.job = { ...unemployed };
+                logEvent(`Backfired! Your lies were exposed and you were fired from ${oldJob}!`, 'negative');
+            }
+
+            gameState.choicesMadeThisWeek.push('sabotage');
+            updateUI();
+            renderChoices();
+        }
+
+        // Close badmouth modal
+        function closeBadmouthModal() {
+            document.getElementById('badmouth-modal').classList.remove('active');
+        }
+
+        // ==================== BAILOUT SYSTEM ====================
+
+        // Open bailout modal
+        function openBailoutModal() {
+            const modal = document.getElementById('bailout-modal');
+            const targetSelect = document.getElementById('bailout-target');
+
+            // Get all jailed competitors
+            const jailedPlayers = gameState.competitors.filter(c => !c.isDead && c.isInJail);
+
+            if (jailedPlayers.length === 0) {
+                logEvent('No one in jail to bail out!', 'negative');
+                return;
+            }
+
+            targetSelect.innerHTML = jailedPlayers.map(t => {
+                const cost = t.jailWeeksRemaining * 100;
+                return `<option value="${t.name}" data-cost="${cost}">${getDisplayName(t.name)} - ${t.jailWeeksRemaining} weeks ($${cost})</option>`;
+            }).join('');
+
+            updateBailoutModal();
+            modal.classList.add('active');
+        }
+
+        // Update bailout modal
+        function updateBailoutModal() {
+            const targetSelect = document.getElementById('bailout-target');
+            const costDisplay = document.getElementById('bailout-cost');
+            const confirmBtn = document.getElementById('bailout-confirm-btn');
+
+            const selectedOption = targetSelect.options[targetSelect.selectedIndex];
+            const cost = parseInt(selectedOption.dataset.cost) || 0;
+
+            costDisplay.textContent = cost;
+
+            if (gameState.player.money < cost) {
+                confirmBtn.disabled = true;
+                confirmBtn.textContent = 'Not enough money';
+            } else {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Pay Bail';
+            }
+        }
+
+        // Execute bailout
+        function executeBailout() {
+            const targetSelect = document.getElementById('bailout-target');
+            const targetName = targetSelect.value;
+
+            const target = gameState.competitors.find(c => c.name === targetName);
+            if (!target) {
+                closeBailoutModal();
+                return;
+            }
+
+            const cost = target.jailWeeksRemaining * 100;
+
+            if (gameState.player.money < cost) {
+                closeBailoutModal();
+                return;
+            }
+
+            gameState.player.money -= cost;
+            target.isInJail = false;
+            target.jailWeeksRemaining = 0;
+
+            closeBailoutModal();
+            logEvent(`Paid $${cost} to bail out ${getDisplayName(targetName)} from jail!`, 'positive');
+
+            gameState.choicesMadeThisWeek.push('sabotage');
+            updateUI();
+            renderChoices();
+        }
+
+        // Close bailout modal
+        function closeBailoutModal() {
+            document.getElementById('bailout-modal').classList.remove('active');
+        }
+
+        // ==================== UNIFIED SABOTAGE SYSTEM ====================
+
+        // Sabotage descriptions for the dropdown
+        const sabotageDescriptions = {
+            'steal': '🦹 <b>Steal Money</b><br>Take cash directly from another player. Higher amounts = lower success chance. If caught, you go to jail!',
+            'badmouth': '🗣️ <b>Bad Mouth to Boss</b><br>Spread lies to get someone fired. Requires you AND target to have jobs. If it backfires, YOU get fired instead!',
+            'spread-rumors': '💬 <b>Spread Rumors</b><br>Start nasty gossip about someone to tank their happiness. 70% success rate, reduces their happiness by 20-40.',
+            'frame': '🚔 <b>Frame for Crime</b><br>Plant evidence to get them arrested. Only 40% success. If you fail, YOU go to jail instead!',
+            'food-poison': '🍔 <b>Poison Food</b><br>Slip something in their lunch. Costs $50. 60% success. Gives them food poisoning for 3 weeks!',
+            'job-steal': '💼 <b>Poach Job</b><br>Undermine someone and steal their position. Only 35% success. If you fail, you BOTH lose your jobs!',
+            'bailout': '🔓 <b>Bail Out</b><br>Pay money to release someone from jail early. Costs $100 per week of their remaining sentence. A kind (or strategic) gesture!'
+        };
+
+        // Open unified sabotage modal
+        function openSabotageModal() {
+            const modal = document.getElementById('sabotage-modal');
+            const typeSelect = document.getElementById('sabotage-type');
+            const descDiv = document.getElementById('sabotage-description');
+
+            // Update description for initial selection
+            descDiv.innerHTML = sabotageDescriptions[typeSelect.value];
+
+            modal.classList.add('active');
+        }
+
+        // Update sabotage description when dropdown changes
+        function updateSabotageDescription() {
+            const typeSelect = document.getElementById('sabotage-type');
+            const descDiv = document.getElementById('sabotage-description');
+            descDiv.innerHTML = sabotageDescriptions[typeSelect.value];
+        }
+
+        // Proceed with selected sabotage
+        function proceedSabotage() {
+            const typeSelect = document.getElementById('sabotage-type');
+            const selectedType = typeSelect.value;
+
+            closeSabotageModal();
+
+            // Open the appropriate sub-modal
+            switch (selectedType) {
+                case 'steal':
+                    openStealModal();
+                    break;
+                case 'badmouth':
+                    if (gameState.player.job.salary === 0) {
+                        logEvent('You need a job first to bad mouth someone!', 'negative');
+                        return;
+                    }
+                    openBadmouthModal();
+                    break;
+                case 'spread-rumors':
+                    openRumorsModal();
+                    break;
+                case 'frame':
+                    openFrameModal();
+                    break;
+                case 'food-poison':
+                    if (gameState.player.money < 50) {
+                        logEvent('You need $50 for "ingredients"!', 'negative');
+                        return;
+                    }
+                    openPoisonModal();
+                    break;
+                case 'job-steal':
+                    if (gameState.player.job.salary === 0) {
+                        logEvent('You need a job first to poach someone else\'s!', 'negative');
+                        return;
+                    }
+                    openJobStealModal();
+                    break;
+                case 'bailout':
+                    openBailoutModal();
+                    break;
+            }
+        }
+
+        // Close sabotage modal
+        function closeSabotageModal() {
+            document.getElementById('sabotage-modal').classList.remove('active');
+        }
+
+        // ==================== SPREAD RUMORS SYSTEM ====================
+
+        function openRumorsModal() {
+            const modal = document.getElementById('rumors-modal');
+            const targetSelect = document.getElementById('rumors-target');
+
+            const targets = gameState.competitors.filter(c => !c.isDead);
+
+            if (targets.length === 0) {
+                logEvent('No one to spread rumors about!', 'negative');
+                return;
+            }
+
+            targetSelect.innerHTML = targets.map(t =>
+                `<option value="${t.name}">${getDisplayName(t.name)} - Happiness: ${t.happiness}</option>`
+            ).join('');
+
+            document.getElementById('rumors-chance').textContent = '70%';
+            document.getElementById('rumors-chance').style.color = '#2ecc71';
+
+            modal.classList.add('active');
+        }
+
+        function attemptRumors() {
+            const targetSelect = document.getElementById('rumors-target');
+            const targetName = targetSelect.value;
+
+            const target = gameState.competitors.find(c => c.name === targetName);
+            if (!target) {
+                closeRumorsModal();
+                return;
+            }
+
+            closeRumorsModal();
+
+            if (Math.random() < 0.70) {
+                // Success - reduce their happiness
+                const reduction = 20 + Math.floor(Math.random() * 21); // 20-40
+                target.happiness = Math.max(0, target.happiness - reduction);
+                logEvent(`Your rumors worked! ${getDisplayName(targetName)}'s happiness dropped by ${reduction}!`, 'positive');
+            } else {
+                // Fail - they found out, your happiness drops
+                gameState.player.happiness = Math.max(0, gameState.player.happiness - 15);
+                logEvent(`${getDisplayName(targetName)} found out you were spreading lies! You feel guilty. -15 happiness`, 'negative');
+            }
+
+            gameState.choicesMadeThisWeek.push('sabotage');
+            updateUI();
+            renderChoices();
+        }
+
+        function closeRumorsModal() {
+            document.getElementById('rumors-modal').classList.remove('active');
+        }
+
+        // ==================== FRAME FOR CRIME SYSTEM ====================
+
+        function openFrameModal() {
+            const modal = document.getElementById('frame-modal');
+            const targetSelect = document.getElementById('frame-target');
+
+            const targets = gameState.competitors.filter(c => !c.isDead && !c.isInJail);
+
+            if (targets.length === 0) {
+                logEvent('No one available to frame!', 'negative');
+                return;
+            }
+
+            targetSelect.innerHTML = targets.map(t =>
+                `<option value="${t.name}">${getDisplayName(t.name)}</option>`
+            ).join('');
+
+            document.getElementById('frame-chance').textContent = '40%';
+            document.getElementById('frame-chance').style.color = '#f39c12';
+
+            modal.classList.add('active');
+        }
+
+        function attemptFrame() {
+            const targetSelect = document.getElementById('frame-target');
+            const targetName = targetSelect.value;
+
+            const target = gameState.competitors.find(c => c.name === targetName);
+            if (!target) {
+                closeFrameModal();
+                return;
+            }
+
+            closeFrameModal();
+
+            if (Math.random() < 0.40) {
+                // Success - they go to jail
+                const jailWeeks = 3 + Math.floor(Math.random() * 4); // 3-6 weeks
+                target.isInJail = true;
+                target.jailWeeksRemaining = jailWeeks;
+
+                // They get criminal penalty
+                const currentPenalty = target.criminalPenalty || 0;
+                target.criminalPenalty = Math.min(0.9, 1 - (1 - currentPenalty) * 0.5);
+
+                // They lose their job
+                if (target.job && target.job.salary > 0) {
+                    target.job = { ...unemployed };
+                }
+
+                logEvent(`Your frame job worked! ${getDisplayName(targetName)} was arrested for ${jailWeeks} weeks!`, 'positive');
+            } else {
+                // Fail - YOU go to jail
+                const jailWeeks = 4 + Math.floor(Math.random() * 5); // 4-8 weeks
+                gameState.player.isInJail = true;
+                gameState.player.jailWeeksRemaining = jailWeeks;
+
+                const currentPenalty = gameState.player.criminalPenalty || 0;
+                gameState.player.criminalPenalty = Math.min(0.9, 1 - (1 - currentPenalty) * 0.5);
+
+                if (gameState.player.job.salary > 0) {
+                    const oldJob = gameState.player.job.title;
+                    gameState.player.job = { ...unemployed };
+                    logEvent(`Your scheme was discovered! Arrested for ${jailWeeks} weeks and fired from ${oldJob}!`, 'negative');
+                } else {
+                    logEvent(`Your scheme was discovered! Arrested for ${jailWeeks} weeks!`, 'negative');
+                }
+            }
+
+            gameState.choicesMadeThisWeek.push('sabotage');
+            updateUI();
+            renderChoices();
+        }
+
+        function closeFrameModal() {
+            document.getElementById('frame-modal').classList.remove('active');
+        }
+
+        // ==================== POISON FOOD SYSTEM ====================
+
+        function openPoisonModal() {
+            const modal = document.getElementById('poison-modal');
+            const targetSelect = document.getElementById('poison-target');
+
+            const targets = gameState.competitors.filter(c => !c.isDead && !c.illness);
+
+            if (targets.length === 0) {
+                logEvent('No one available to poison (they\'re all already sick)!', 'negative');
+                return;
+            }
+
+            targetSelect.innerHTML = targets.map(t =>
+                `<option value="${t.name}">${getDisplayName(t.name)} - Health: ${t.health}</option>`
+            ).join('');
+
+            document.getElementById('poison-chance').textContent = '60%';
+            document.getElementById('poison-chance').style.color = '#f39c12';
+
+            modal.classList.add('active');
+        }
+
+        function attemptPoison() {
+            const targetSelect = document.getElementById('poison-target');
+            const targetName = targetSelect.value;
+
+            const target = gameState.competitors.find(c => c.name === targetName);
+            if (!target) {
+                closePoisonModal();
+                return;
+            }
+
+            // Pay the cost
+            gameState.player.money -= 50;
+
+            closePoisonModal();
+
+            if (Math.random() < 0.60) {
+                // Success - give them food poisoning
+                target.illness = 'foodPoisoning';
+                target.illnessWeeks = 0;
+                logEvent(`Success! ${getDisplayName(targetName)} got food poisoning! -$50`, 'positive');
+            } else {
+                // Fail - you accidentally poison yourself
+                gameState.player.illness = 'foodPoisoning';
+                gameState.player.illnessWeeks = 0;
+                logEvent(`You accidentally ate the poisoned food yourself! You have food poisoning! -$50`, 'negative');
+            }
+
+            gameState.choicesMadeThisWeek.push('sabotage');
+            updateUI();
+            renderChoices();
+        }
+
+        function closePoisonModal() {
+            document.getElementById('poison-modal').classList.remove('active');
+        }
+
+        // ==================== JOB STEAL (POACH) SYSTEM ====================
+
+        function openJobStealModal() {
+            const modal = document.getElementById('jobsteal-modal');
+            const targetSelect = document.getElementById('jobsteal-target');
+
+            const targets = gameState.competitors.filter(c => !c.isDead && c.job && c.job.salary > 0);
+
+            if (targets.length === 0) {
+                logEvent('No one with a job to poach!', 'negative');
+                return;
+            }
+
+            targetSelect.innerHTML = targets.map(t =>
+                `<option value="${t.name}" data-skills="${t.skills}">${getDisplayName(t.name)} - ${t.job.title} ($${t.job.salary}/wk)</option>`
+            ).join('');
+
+            updateJobStealModal();
+            modal.classList.add('active');
+        }
+
+        function updateJobStealModal() {
+            const targetSelect = document.getElementById('jobsteal-target');
+            const chanceDisplay = document.getElementById('jobsteal-chance');
+
+            const selectedOption = targetSelect.options[targetSelect.selectedIndex];
+            const targetSkills = parseInt(selectedOption.dataset.skills) || 0;
+            const playerSkills = gameState.player.skills;
+
+            // Base 35% chance, small bonus for skill advantage
+            const skillDiff = playerSkills - targetSkills;
+            const successChance = Math.max(0.1, Math.min(0.6, 0.35 + (skillDiff / 200)));
+
+            chanceDisplay.textContent = Math.floor(successChance * 100) + '%';
+
+            if (successChance >= 0.5) {
+                chanceDisplay.style.color = '#f39c12';
+            } else {
+                chanceDisplay.style.color = '#e74c3c';
+            }
+        }
+
+        function attemptJobSteal() {
+            const targetSelect = document.getElementById('jobsteal-target');
+            const targetName = targetSelect.value;
+
+            const target = gameState.competitors.find(c => c.name === targetName);
+            if (!target) {
+                closeJobStealModal();
+                return;
+            }
+
+            const skillDiff = gameState.player.skills - target.skills;
+            const successChance = Math.max(0.1, Math.min(0.6, 0.35 + (skillDiff / 200)));
+
+            closeJobStealModal();
+
+            if (Math.random() < successChance) {
+                // Success - you steal their job
+                const stolenJob = { ...target.job };
+                target.job = { ...unemployed };
+                gameState.player.job = stolenJob;
+                logEvent(`You successfully poached ${getDisplayName(targetName)}'s job! You're now ${stolenJob.title} at ${stolenJob.company}!`, 'positive');
+            } else {
+                // Fail - you BOTH lose your jobs
+                const yourOldJob = gameState.player.job.title;
+                const theirOldJob = target.job.title;
+                gameState.player.job = { ...unemployed };
+                target.job = { ...unemployed };
+                logEvent(`Your scheme was exposed! Both you (${yourOldJob}) and ${getDisplayName(targetName)} (${theirOldJob}) were fired!`, 'negative');
+            }
+
+            gameState.choicesMadeThisWeek.push('sabotage');
+            updateUI();
+            renderChoices();
+        }
+
+        function closeJobStealModal() {
+            document.getElementById('jobsteal-modal').classList.remove('active');
         }
 
         // ==================== ADMIN SYSTEM ====================
@@ -3831,6 +4574,38 @@
         document.getElementById('steal-amount').addEventListener('input', updateStealModal);
         document.getElementById('steal-cancel-btn').addEventListener('click', closeStealModal);
         document.getElementById('steal-confirm-btn').addEventListener('click', attemptSteal);
+
+        // Unified sabotage modal event listeners
+        document.getElementById('sabotage-type').addEventListener('change', updateSabotageDescription);
+        document.getElementById('sabotage-cancel-btn').addEventListener('click', closeSabotageModal);
+        document.getElementById('sabotage-proceed-btn').addEventListener('click', proceedSabotage);
+
+        // Badmouth modal event listeners
+        document.getElementById('badmouth-target').addEventListener('change', updateBadmouthModal);
+        document.getElementById('badmouth-cancel-btn').addEventListener('click', closeBadmouthModal);
+        document.getElementById('badmouth-confirm-btn').addEventListener('click', attemptBadmouth);
+
+        // Bailout modal event listeners
+        document.getElementById('bailout-target').addEventListener('change', updateBailoutModal);
+        document.getElementById('bailout-cancel-btn').addEventListener('click', closeBailoutModal);
+        document.getElementById('bailout-confirm-btn').addEventListener('click', executeBailout);
+
+        // Rumors modal event listeners
+        document.getElementById('rumors-cancel-btn').addEventListener('click', closeRumorsModal);
+        document.getElementById('rumors-confirm-btn').addEventListener('click', attemptRumors);
+
+        // Frame modal event listeners
+        document.getElementById('frame-cancel-btn').addEventListener('click', closeFrameModal);
+        document.getElementById('frame-confirm-btn').addEventListener('click', attemptFrame);
+
+        // Poison modal event listeners
+        document.getElementById('poison-cancel-btn').addEventListener('click', closePoisonModal);
+        document.getElementById('poison-confirm-btn').addEventListener('click', attemptPoison);
+
+        // Job steal modal event listeners
+        document.getElementById('jobsteal-target').addEventListener('change', updateJobStealModal);
+        document.getElementById('jobsteal-cancel-btn').addEventListener('click', closeJobStealModal);
+        document.getElementById('jobsteal-confirm-btn').addEventListener('click', attemptJobSteal);
 
         // Admin modal event listeners
         document.getElementById('admin-action').addEventListener('change', updateAdminModal);
