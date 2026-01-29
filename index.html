@@ -1565,7 +1565,7 @@
 
                 return `
                     <div class="competitor ${p.isPlayer ? 'player' : ''} ${p.isDead ? 'dead' : ''}">
-                        <span class="name">${index + 1}. ${p.name} ${label}${deadLabel}</span>
+                        <span class="name">${index + 1}. ${getDisplayName(p.name)} ${label}${deadLabel}</span>
                         <span class="money">$${Math.floor(p.money)}</span>
                     </div>
                 `;
@@ -2864,40 +2864,42 @@
             }
         }
 
+        // Find a player by name (checks local player, competitors, and humanPlayers)
+        function findPlayerByName(name) {
+            // Check if it's the local player
+            if (gameState.player && gameState.player.name === name) {
+                return gameState.player;
+            }
+            // Check competitors
+            let player = gameState.competitors.find(c => c.name === name);
+            if (player) return player;
+            // Check humanPlayers (for host)
+            if (gameState.humanPlayers) {
+                const hp = gameState.humanPlayers.find(p => p.name === name);
+                if (hp && hp.playerData) return hp.playerData;
+            }
+            return null;
+        }
+
         // Apply sabotage action (used by host to process client sabotages)
         function applySabotageAction(data) {
             const targetName = data.targetName;
             const attackerName = data.attackerName;
 
-            // Find target in competitors or humanPlayers
-            let target = gameState.competitors.find(c => c.name === targetName);
-            if (!target) {
-                const humanPlayer = gameState.humanPlayers.find(p => p.name === targetName);
-                if (humanPlayer && humanPlayer.playerData) {
-                    target = humanPlayer.playerData;
-                }
-            }
+            const target = findPlayerByName(targetName);
+            const attacker = findPlayerByName(attackerName);
 
-            // Find attacker
-            let attacker = null;
-            if (attackerName === gameState.player.name) {
-                attacker = gameState.player;
-            } else {
-                attacker = gameState.competitors.find(c => c.name === attackerName);
-                if (!attacker) {
-                    const humanPlayer = gameState.humanPlayers.find(p => p.name === attackerName);
-                    if (humanPlayer && humanPlayer.playerData) {
-                        attacker = humanPlayer.playerData;
-                    }
-                }
-            }
-
-            if (!target && data.action !== 'steal-success' && data.action !== 'steal-fail') return;
+            // Check if I was the target and show notification
+            const iWasTarget = gameState.player && gameState.player.name === targetName;
+            const attackerDisplayName = getDisplayName(attackerName);
 
             switch (data.action) {
                 case 'steal-success':
                     if (target) target.money -= data.amount;
                     if (attacker) attacker.money += data.amount;
+                    if (iWasTarget) {
+                        logEvent(`${attackerDisplayName} stole $${data.amount} from you!`, 'negative');
+                    }
                     break;
                 case 'steal-fail':
                     if (attacker) {
@@ -2906,18 +2908,33 @@
                         attacker.criminalPenalty = data.criminalPenalty;
                         if (data.lostJob) attacker.job = { ...unemployed };
                     }
+                    if (iWasTarget) {
+                        logEvent(`${attackerDisplayName} tried to steal from you but got caught!`, 'positive');
+                    }
                     break;
                 case 'badmouth-success':
                     if (target) target.job = { ...unemployed };
+                    if (iWasTarget) {
+                        logEvent(`${attackerDisplayName} bad mouthed you to your boss - you got fired!`, 'negative');
+                    }
                     break;
                 case 'badmouth-fail':
                     if (attacker) attacker.job = { ...unemployed };
+                    if (iWasTarget) {
+                        logEvent(`${attackerDisplayName} tried to get you fired but their lies were exposed!`, 'positive');
+                    }
                     break;
                 case 'rumors-success':
                     if (target) target.happiness = Math.max(0, target.happiness - data.reduction);
+                    if (iWasTarget) {
+                        logEvent(`${attackerDisplayName} spread rumors about you! -${data.reduction} happiness`, 'negative');
+                    }
                     break;
                 case 'rumors-fail':
                     if (attacker) attacker.happiness = Math.max(0, attacker.happiness - 15);
+                    if (iWasTarget) {
+                        logEvent(`${attackerDisplayName} tried to spread rumors about you but you found out!`, 'positive');
+                    }
                     break;
                 case 'frame-success':
                     if (target) {
@@ -2925,6 +2942,9 @@
                         target.jailWeeksRemaining = data.jailWeeks;
                         target.criminalPenalty = data.criminalPenalty;
                         if (target.job && target.job.salary > 0) target.job = { ...unemployed };
+                    }
+                    if (iWasTarget) {
+                        logEvent(`${attackerDisplayName} framed you for a crime! You're in jail for ${data.jailWeeks} weeks!`, 'negative');
                     }
                     break;
                 case 'frame-fail':
@@ -2934,6 +2954,9 @@
                         attacker.criminalPenalty = data.criminalPenalty;
                         if (attacker.job && attacker.job.salary > 0) attacker.job = { ...unemployed };
                     }
+                    if (iWasTarget) {
+                        logEvent(`${attackerDisplayName} tried to frame you but got caught themselves!`, 'positive');
+                    }
                     break;
                 case 'poison-success':
                     if (target) {
@@ -2941,12 +2964,18 @@
                         target.illnessWeeks = 0;
                     }
                     if (attacker) attacker.money -= 50;
+                    if (iWasTarget) {
+                        logEvent(`${attackerDisplayName} poisoned your food! You have food poisoning!`, 'negative');
+                    }
                     break;
                 case 'poison-fail':
                     if (attacker) {
                         attacker.illness = 'foodPoisoning';
                         attacker.illnessWeeks = 0;
                         attacker.money -= 50;
+                    }
+                    if (iWasTarget) {
+                        logEvent(`${attackerDisplayName} tried to poison you but ate it themselves!`, 'positive');
                     }
                     break;
                 case 'jobsteal-success':
@@ -2955,10 +2984,16 @@
                         target.job = { ...unemployed };
                         attacker.job = stolenJob;
                     }
+                    if (iWasTarget) {
+                        logEvent(`${attackerDisplayName} poached your job! You're now unemployed!`, 'negative');
+                    }
                     break;
                 case 'jobsteal-fail':
                     if (target) target.job = { ...unemployed };
                     if (attacker) attacker.job = { ...unemployed };
+                    if (iWasTarget) {
+                        logEvent(`${attackerDisplayName} tried to steal your job - you both got fired!`, 'negative');
+                    }
                     break;
                 case 'bailout':
                     if (target) {
@@ -2966,6 +3001,9 @@
                         target.jailWeeksRemaining = 0;
                     }
                     if (attacker) attacker.money -= data.cost;
+                    if (iWasTarget) {
+                        logEvent(`${attackerDisplayName} paid $${data.cost} to bail you out of jail!`, 'positive');
+                    }
                     break;
             }
         }
@@ -3213,10 +3251,12 @@
                     break;
 
                 case 'sabotage_result':
-                    // Apply the sabotage result locally
-                    applySabotageAction(data.result);
-                    updateUI();
-                    renderChoices();
+                    // Only apply if we weren't the attacker (attacker already applied locally)
+                    if (data.result.attackerName !== gameState.player.name) {
+                        applySabotageAction(data.result);
+                        updateUI();
+                        renderChoices();
+                    }
                     break;
 
                 case 'error':
