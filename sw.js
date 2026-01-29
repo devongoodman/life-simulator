@@ -1,4 +1,4 @@
-const CACHE_NAME = 'life-simulator-v1';
+const CACHE_NAME = 'life-simulator-v2';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -32,15 +32,23 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// Fetch from cache, fallback to network
+// Network first, fallback to cache (ensures updates are seen immediately)
 self.addEventListener('fetch', event => {
   event.respondWith(
-    caches.match(event.request)
+    fetch(event.request)
       .then(response => {
-        if (response) {
-          return response;
+        // Clone and cache the new response
+        if (response.status === 200) {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, responseClone);
+          });
         }
-        return fetch(event.request);
+        return response;
+      })
+      .catch(() => {
+        // Offline - use cache
+        return caches.match(event.request);
       })
   );
 });
