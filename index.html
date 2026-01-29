@@ -977,7 +977,6 @@
                     <option value="frame">🚔 Frame for Crime - Get them arrested</option>
                     <option value="food-poison">🍔 Poison Food - Make them sick</option>
                     <option value="job-steal">💼 Poach Job - Steal their position</option>
-                    <option value="bailout">🔓 Bail Out - Free someone from jail</option>
                 </select>
 
                 <div id="sabotage-description" style="margin: 15px 0; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 8px; color: #aaa;">
@@ -1906,6 +1905,25 @@
                     action: () => {
                         openSabotageModal();
                     }
+                },
+                {
+                    id: 'bailout',
+                    title: '🔓 Bail Someone Out',
+                    desc: (() => {
+                        const jailedPlayers = gameState.competitors.filter(c => !c.isDead && c.isInJail);
+                        if (jailedPlayers.length === 0) return 'No one in jail';
+                        const minCost = Math.min(...jailedPlayers.map(c => c.jailWeeksRemaining * 100));
+                        return `Pay to release someone (from $${minCost})`;
+                    })(),
+                    disabled: (() => {
+                        const jailedPlayers = gameState.competitors.filter(c => !c.isDead && c.isInJail);
+                        if (jailedPlayers.length === 0) return true;
+                        const minCost = Math.min(...jailedPlayers.map(c => c.jailWeeksRemaining * 100));
+                        return player.money < minCost;
+                    })(),
+                    action: () => {
+                        openBailoutModal();
+                    }
                 }
             ];
 
@@ -1925,7 +1943,10 @@
                     const choice = choices.find(c => c.id === choiceId);
                     if (choice && !gameState.choicesMadeThisWeek.includes(choiceId)) {
                         choice.action();
-                        gameState.choicesMadeThisWeek.push(choiceId);
+                        // Don't auto-mark sabotage/bailout as used - they handle it themselves when action completes
+                        if (choiceId !== 'sabotage' && choiceId !== 'bailout') {
+                            gameState.choicesMadeThisWeek.push(choiceId);
+                        }
                         updateUI();
                         renderChoices();
                     }
@@ -3975,7 +3996,7 @@
             closeBailoutModal();
             logEvent(`Paid $${cost} to bail out ${getDisplayName(targetName)} from jail!`, 'positive');
 
-            gameState.choicesMadeThisWeek.push('sabotage');
+            gameState.choicesMadeThisWeek.push('bailout');
             updateUI();
             renderChoices();
         }
@@ -3994,8 +4015,7 @@
             'spread-rumors': '💬 <b>Spread Rumors</b><br>Start nasty gossip about someone to tank their happiness. 70% success rate, reduces their happiness by 20-40.',
             'frame': '🚔 <b>Frame for Crime</b><br>Plant evidence to get them arrested. Only 40% success. If you fail, YOU go to jail instead!',
             'food-poison': '🍔 <b>Poison Food</b><br>Slip something in their lunch. Costs $50. 60% success. Gives them food poisoning for 3 weeks!',
-            'job-steal': '💼 <b>Poach Job</b><br>Undermine someone and steal their position. Only 35% success. If you fail, you BOTH lose your jobs!',
-            'bailout': '🔓 <b>Bail Out</b><br>Pay money to release someone from jail early. Costs $100 per week of their remaining sentence. A kind (or strategic) gesture!'
+            'job-steal': '💼 <b>Poach Job</b><br>Undermine someone and steal their position. Only 35% success. If you fail, you BOTH lose your jobs!'
         };
 
         // Open unified sabotage modal
@@ -4055,9 +4075,6 @@
                         return;
                     }
                     openJobStealModal();
-                    break;
-                case 'bailout':
-                    openBailoutModal();
                     break;
             }
         }
