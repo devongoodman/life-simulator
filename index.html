@@ -2850,6 +2850,123 @@
                         checkAllPlayersReady();
                     }
                     break;
+
+                case 'sabotage':
+                    // Apply sabotage action from client
+                    applySabotageAction(data);
+                    // Broadcast to all clients so they see the result
+                    broadcastToClients({
+                        type: 'sabotage_result',
+                        action: data.action,
+                        result: data
+                    });
+                    break;
+            }
+        }
+
+        // Apply sabotage action (used by host to process client sabotages)
+        function applySabotageAction(data) {
+            const targetName = data.targetName;
+            const attackerName = data.attackerName;
+
+            // Find target in competitors or humanPlayers
+            let target = gameState.competitors.find(c => c.name === targetName);
+            if (!target) {
+                const humanPlayer = gameState.humanPlayers.find(p => p.name === targetName);
+                if (humanPlayer && humanPlayer.playerData) {
+                    target = humanPlayer.playerData;
+                }
+            }
+
+            // Find attacker
+            let attacker = null;
+            if (attackerName === gameState.player.name) {
+                attacker = gameState.player;
+            } else {
+                attacker = gameState.competitors.find(c => c.name === attackerName);
+                if (!attacker) {
+                    const humanPlayer = gameState.humanPlayers.find(p => p.name === attackerName);
+                    if (humanPlayer && humanPlayer.playerData) {
+                        attacker = humanPlayer.playerData;
+                    }
+                }
+            }
+
+            if (!target && data.action !== 'steal-success' && data.action !== 'steal-fail') return;
+
+            switch (data.action) {
+                case 'steal-success':
+                    if (target) target.money -= data.amount;
+                    if (attacker) attacker.money += data.amount;
+                    break;
+                case 'steal-fail':
+                    if (attacker) {
+                        attacker.isInJail = true;
+                        attacker.jailWeeksRemaining = data.jailWeeks;
+                        attacker.criminalPenalty = data.criminalPenalty;
+                        if (data.lostJob) attacker.job = { ...unemployed };
+                    }
+                    break;
+                case 'badmouth-success':
+                    if (target) target.job = { ...unemployed };
+                    break;
+                case 'badmouth-fail':
+                    if (attacker) attacker.job = { ...unemployed };
+                    break;
+                case 'rumors-success':
+                    if (target) target.happiness = Math.max(0, target.happiness - data.reduction);
+                    break;
+                case 'rumors-fail':
+                    if (attacker) attacker.happiness = Math.max(0, attacker.happiness - 15);
+                    break;
+                case 'frame-success':
+                    if (target) {
+                        target.isInJail = true;
+                        target.jailWeeksRemaining = data.jailWeeks;
+                        target.criminalPenalty = data.criminalPenalty;
+                        if (target.job && target.job.salary > 0) target.job = { ...unemployed };
+                    }
+                    break;
+                case 'frame-fail':
+                    if (attacker) {
+                        attacker.isInJail = true;
+                        attacker.jailWeeksRemaining = data.jailWeeks;
+                        attacker.criminalPenalty = data.criminalPenalty;
+                        if (attacker.job && attacker.job.salary > 0) attacker.job = { ...unemployed };
+                    }
+                    break;
+                case 'poison-success':
+                    if (target) {
+                        target.illness = 'foodPoisoning';
+                        target.illnessWeeks = 0;
+                    }
+                    if (attacker) attacker.money -= 50;
+                    break;
+                case 'poison-fail':
+                    if (attacker) {
+                        attacker.illness = 'foodPoisoning';
+                        attacker.illnessWeeks = 0;
+                        attacker.money -= 50;
+                    }
+                    break;
+                case 'jobsteal-success':
+                    if (target && attacker) {
+                        const stolenJob = { ...target.job };
+                        target.job = { ...unemployed };
+                        attacker.job = stolenJob;
+                    }
+                    break;
+                case 'jobsteal-fail':
+                    if (target) target.job = { ...unemployed };
+                    if (attacker) attacker.job = { ...unemployed };
+                    break;
+                case 'bailout':
+                    if (target) {
+                        target.isInJail = false;
+                        target.jailWeeksRemaining = 0;
+                    }
+                    if (attacker) attacker.money -= data.cost;
+                    break;
             }
         }
 
@@ -2884,6 +3001,24 @@
                     conn.send(message);
                 }
             });
+        }
+
+        // Send sabotage action to host (for multiplayer sync)
+        function sendSabotageToHost(sabotageData) {
+            if (gameState.gameMode === 'multi-client' && gameState.hostConnection) {
+                gameState.hostConnection.send({
+                    type: 'sabotage',
+                    ...sabotageData
+                });
+            } else if (gameState.gameMode === 'multi-host') {
+                // Host applies it directly and broadcasts
+                applySabotageAction(sabotageData);
+                broadcastToClients({
+                    type: 'sabotage_result',
+                    action: sabotageData.action,
+                    result: sabotageData
+                });
+            }
         }
 
         // Join a room (client)
@@ -3075,6 +3210,13 @@
                 case 'host_left':
                     alert('The host has left the game.');
                     resetToMainMenu();
+                    break;
+
+                case 'sabotage_result':
+                    // Apply the sabotage result locally
+                    applySabotageAction(data.result);
+                    updateUI();
+                    renderChoices();
                     break;
 
                 case 'error':
@@ -3813,6 +3955,16 @@
                 target.money -= actualAmount;
                 gameState.player.money += actualAmount;
                 logEvent(`Successfully stole $${actualAmount} from ${targetName}!`, 'positive');
+
+                // Sync in multiplayer
+                if (gameState.gameMode !== 'single') {
+                    sendSabotageToHost({
+                        action: 'steal-success',
+                        targetName: targetName,
+                        attackerName: gameState.player.name,
+                        amount: actualAmount
+                    });
+                }
             } else {
                 // Caught! Go to jail
                 gameState.player.isInJail = true;
@@ -3822,12 +3974,25 @@
                 const currentPenalty = gameState.player.criminalPenalty || 0;
                 gameState.player.criminalPenalty = Math.min(0.9, 1 - (1 - currentPenalty) * 0.5);
 
+                const lostJob = gameState.player.job.salary > 0;
                 // Lose job when going to jail
-                if (gameState.player.job.salary > 0) {
+                if (lostJob) {
                     logEvent(`Caught stealing! Fired from ${gameState.player.job.title} and sentenced to ${jailWeeks} weeks in jail!`, 'negative');
                     gameState.player.job = { ...unemployed };
                 } else {
                     logEvent(`Caught stealing! Sentenced to ${jailWeeks} weeks in jail!`, 'negative');
+                }
+
+                // Sync in multiplayer
+                if (gameState.gameMode !== 'single') {
+                    sendSabotageToHost({
+                        action: 'steal-fail',
+                        targetName: targetName,
+                        attackerName: gameState.player.name,
+                        jailWeeks: jailWeeks,
+                        criminalPenalty: gameState.player.criminalPenalty,
+                        lostJob: lostJob
+                    });
                 }
             }
 
@@ -3910,11 +4075,27 @@
                 const oldJob = target.job.title;
                 target.job = { ...unemployed };
                 logEvent(`Your bad mouthing worked! ${getDisplayName(targetName)} was fired from ${oldJob}!`, 'positive');
+
+                if (gameState.gameMode !== 'single') {
+                    sendSabotageToHost({
+                        action: 'badmouth-success',
+                        targetName: targetName,
+                        attackerName: gameState.player.name
+                    });
+                }
             } else {
                 // Fail - YOU get fired
                 const oldJob = gameState.player.job.title;
                 gameState.player.job = { ...unemployed };
                 logEvent(`Backfired! Your lies were exposed and you were fired from ${oldJob}!`, 'negative');
+
+                if (gameState.gameMode !== 'single') {
+                    sendSabotageToHost({
+                        action: 'badmouth-fail',
+                        targetName: targetName,
+                        attackerName: gameState.player.name
+                    });
+                }
             }
 
             gameState.choicesMadeThisWeek.push('sabotage');
@@ -3995,6 +4176,15 @@
 
             closeBailoutModal();
             logEvent(`Paid $${cost} to bail out ${getDisplayName(targetName)} from jail!`, 'positive');
+
+            if (gameState.gameMode !== 'single') {
+                sendSabotageToHost({
+                    action: 'bailout',
+                    targetName: targetName,
+                    attackerName: gameState.player.name,
+                    cost: cost
+                });
+            }
 
             gameState.choicesMadeThisWeek.push('bailout');
             updateUI();
@@ -4124,10 +4314,27 @@
                 const reduction = 20 + Math.floor(Math.random() * 21); // 20-40
                 target.happiness = Math.max(0, target.happiness - reduction);
                 logEvent(`Your rumors worked! ${getDisplayName(targetName)}'s happiness dropped by ${reduction}!`, 'positive');
+
+                if (gameState.gameMode !== 'single') {
+                    sendSabotageToHost({
+                        action: 'rumors-success',
+                        targetName: targetName,
+                        attackerName: gameState.player.name,
+                        reduction: reduction
+                    });
+                }
             } else {
                 // Fail - they found out, your happiness drops
                 gameState.player.happiness = Math.max(0, gameState.player.happiness - 15);
                 logEvent(`${getDisplayName(targetName)} found out you were spreading lies! You feel guilty. -15 happiness`, 'negative');
+
+                if (gameState.gameMode !== 'single') {
+                    sendSabotageToHost({
+                        action: 'rumors-fail',
+                        targetName: targetName,
+                        attackerName: gameState.player.name
+                    });
+                }
             }
 
             gameState.choicesMadeThisWeek.push('sabotage');
@@ -4190,6 +4397,16 @@
                 }
 
                 logEvent(`Your frame job worked! ${getDisplayName(targetName)} was arrested for ${jailWeeks} weeks!`, 'positive');
+
+                if (gameState.gameMode !== 'single') {
+                    sendSabotageToHost({
+                        action: 'frame-success',
+                        targetName: targetName,
+                        attackerName: gameState.player.name,
+                        jailWeeks: jailWeeks,
+                        criminalPenalty: target.criminalPenalty
+                    });
+                }
             } else {
                 // Fail - YOU go to jail
                 const jailWeeks = 4 + Math.floor(Math.random() * 5); // 4-8 weeks
@@ -4205,6 +4422,16 @@
                     logEvent(`Your scheme was discovered! Arrested for ${jailWeeks} weeks and fired from ${oldJob}!`, 'negative');
                 } else {
                     logEvent(`Your scheme was discovered! Arrested for ${jailWeeks} weeks!`, 'negative');
+                }
+
+                if (gameState.gameMode !== 'single') {
+                    sendSabotageToHost({
+                        action: 'frame-fail',
+                        targetName: targetName,
+                        attackerName: gameState.player.name,
+                        jailWeeks: jailWeeks,
+                        criminalPenalty: gameState.player.criminalPenalty
+                    });
                 }
             }
 
@@ -4260,11 +4487,27 @@
                 target.illness = 'foodPoisoning';
                 target.illnessWeeks = 0;
                 logEvent(`Success! ${getDisplayName(targetName)} got food poisoning! -$50`, 'positive');
+
+                if (gameState.gameMode !== 'single') {
+                    sendSabotageToHost({
+                        action: 'poison-success',
+                        targetName: targetName,
+                        attackerName: gameState.player.name
+                    });
+                }
             } else {
                 // Fail - you accidentally poison yourself
                 gameState.player.illness = 'foodPoisoning';
                 gameState.player.illnessWeeks = 0;
                 logEvent(`You accidentally ate the poisoned food yourself! You have food poisoning! -$50`, 'negative');
+
+                if (gameState.gameMode !== 'single') {
+                    sendSabotageToHost({
+                        action: 'poison-fail',
+                        targetName: targetName,
+                        attackerName: gameState.player.name
+                    });
+                }
             }
 
             gameState.choicesMadeThisWeek.push('sabotage');
@@ -4339,6 +4582,14 @@
                 target.job = { ...unemployed };
                 gameState.player.job = stolenJob;
                 logEvent(`You successfully poached ${getDisplayName(targetName)}'s job! You're now ${stolenJob.title} at ${stolenJob.company}!`, 'positive');
+
+                if (gameState.gameMode !== 'single') {
+                    sendSabotageToHost({
+                        action: 'jobsteal-success',
+                        targetName: targetName,
+                        attackerName: gameState.player.name
+                    });
+                }
             } else {
                 // Fail - you BOTH lose your jobs
                 const yourOldJob = gameState.player.job.title;
@@ -4346,6 +4597,14 @@
                 gameState.player.job = { ...unemployed };
                 target.job = { ...unemployed };
                 logEvent(`Your scheme was exposed! Both you (${yourOldJob}) and ${getDisplayName(targetName)} (${theirOldJob}) were fired!`, 'negative');
+
+                if (gameState.gameMode !== 'single') {
+                    sendSabotageToHost({
+                        action: 'jobsteal-fail',
+                        targetName: targetName,
+                        attackerName: gameState.player.name
+                    });
+                }
             }
 
             gameState.choicesMadeThisWeek.push('sabotage');
