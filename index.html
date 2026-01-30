@@ -1079,7 +1079,7 @@
     <div class="modal" id="jobsteal-modal">
         <div class="modal-content steal-content">
             <h2>💼 Poach Job</h2>
-            <p style="color: #2ecc71; margin-bottom: 15px;">Get a position like theirs! They keep their job too.</p>
+            <p class="steal-warning">Steal their job for yourself!</p>
             <div class="steal-form">
                 <label for="jobsteal-target">Target (must have a job):</label>
                 <select id="jobsteal-target"></select>
@@ -1089,7 +1089,7 @@
                         Success Chance: <span id="jobsteal-chance">35%</span>
                     </div>
                     <div style="color: #2ecc71;">
-                        If success: You get a position like theirs!
+                        If success: You take their job, they're unemployed!
                     </div>
                     <div style="color: #f39c12;">
                         If fail: You're humiliated (-30 happiness)
@@ -3003,12 +3003,13 @@
                     }
                     break;
                 case 'jobsteal-success':
-                    // Attacker gets a copy of the job, target keeps theirs
+                    // Attacker takes the job, target becomes unemployed
+                    if (target) target.job = { ...unemployed };
                     if (attacker && data.jobData) {
                         attacker.job = { ...data.jobData };
                     }
                     if (iWasTarget) {
-                        logEvent(`${attackerDisplayName} poached a position like yours at ${data.jobData?.company || 'your company'}!`, 'neutral');
+                        logEvent(`${attackerDisplayName} stole your job! You're now unemployed!`, 'negative');
                     }
                     break;
                 case 'jobsteal-fail':
@@ -4296,7 +4297,7 @@
             'spread-rumors': '💬 <b>Spread Rumors</b><br>Start nasty gossip about someone to tank their happiness. 70% success rate, reduces their happiness by 20-40.',
             'frame': '🚔 <b>Frame for Crime</b><br>Plant evidence to get them arrested. Only 40% success. If you fail, YOU go to jail instead!',
             'food-poison': '🍔 <b>Poison Food</b><br>Slip something in their lunch. Costs $50. 60% success. Gives them food poisoning for 3 weeks!',
-            'job-steal': '💼 <b>Poach Job</b><br>Get a position like theirs! They keep their job too. Only 35% success. If you fail, -30 happiness.'
+            'job-steal': '💼 <b>Poach Job</b><br>Steal their job! They become unemployed. Only 35% success. If you fail, -30 happiness.'
         };
 
         // Open unified sabotage modal
@@ -4664,17 +4665,18 @@
             closeJobStealModal();
 
             if (Math.random() < successChance) {
-                // Success - you get their job, they keep theirs too
-                const newJob = { ...target.job };
-                gameState.player.job = newJob;
-                logEvent(`You successfully poached a position like ${getDisplayName(targetName)}'s! You're now ${newJob.title} at ${newJob.company}!`, 'positive');
+                // Success - you take their job, they become unemployed
+                const stolenJob = { ...target.job };
+                target.job = { ...unemployed };
+                gameState.player.job = stolenJob;
+                logEvent(`You successfully stole ${getDisplayName(targetName)}'s job! You're now ${stolenJob.title} at ${stolenJob.company}!`, 'positive');
 
                 if (gameState.gameMode !== 'single') {
                     sendSabotageToHost({
                         action: 'jobsteal-success',
                         targetName: targetName,
                         attackerName: gameState.player.name,
-                        jobData: newJob
+                        jobData: stolenJob
                     });
                 }
             } else {

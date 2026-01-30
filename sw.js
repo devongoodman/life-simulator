@@ -1,4 +1,4 @@
-const CACHE_NAME = 'life-simulator-v5';
+const CACHE_NAME = 'life-simulator-v6';
 const urlsToCache = [
   '/',
   '/index.html',
