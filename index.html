@@ -921,7 +921,7 @@
     <div class="modal" id="badmouth-modal">
         <div class="modal-content steal-content">
             <h2>🗣️ Bad Mouth to Boss</h2>
-            <p class="steal-warning">Warning: If you fail, YOU get fired instead!</p>
+            <p class="steal-warning">Warning: If you fail, you'll be humiliated! (-50 happiness)</p>
             <div class="steal-form">
                 <label for="badmouth-target">Target:</label>
                 <select id="badmouth-target"></select>
@@ -1079,7 +1079,7 @@
     <div class="modal" id="jobsteal-modal">
         <div class="modal-content steal-content">
             <h2>💼 Poach Job</h2>
-            <p class="steal-warning">Steal someone's job for yourself!</p>
+            <p style="color: #2ecc71; margin-bottom: 15px;">Get a position like theirs! They keep their job too.</p>
             <div class="steal-form">
                 <label for="jobsteal-target">Target (must have a job):</label>
                 <select id="jobsteal-target"></select>
@@ -1089,10 +1089,10 @@
                         Success Chance: <span id="jobsteal-chance">35%</span>
                     </div>
                     <div style="color: #2ecc71;">
-                        If success: You get their job, they're unemployed
+                        If success: You get a position like theirs!
                     </div>
-                    <div style="color: #e74c3c;">
-                        If fail: You lose YOUR job too!
+                    <div style="color: #f39c12;">
+                        If fail: You're humiliated (-30 happiness)
                     </div>
                 </div>
 
@@ -1591,12 +1591,6 @@
             const player = gameState.player;
             const container = document.getElementById('choices-container');
 
-            // Admin mode - show admin commands instead
-            if (gameState.isAdmin) {
-                renderAdminCommands(container);
-                return;
-            }
-
             // Get illness effects if sick
             const illness = player.illness ? illnessEffects[player.illness] : null;
 
@@ -1927,7 +1921,7 @@
                 }
             ];
 
-            container.innerHTML = choices.map(choice => `
+            let html = choices.map(choice => `
                 <button class="choice-btn"
                         ${choice.disabled || gameState.choicesMadeThisWeek.includes(choice.id) ? 'disabled' : ''}
                         data-choice="${choice.id}">
@@ -1936,8 +1930,28 @@
                 </button>
             `).join('');
 
-            // Add event listeners
-            container.querySelectorAll('.choice-btn').forEach(btn => {
+            // Add admin commands if in admin mode
+            if (gameState.isAdmin) {
+                const adminCommands = [
+                    { id: 'admin-bankrupt', title: '💸 Bankrupt Player', desc: 'Set any player\'s money to $0' },
+                    { id: 'admin-stats', title: '📊 Set Stats', desc: 'Modify any player\'s stats' },
+                    { id: 'admin-remove', title: '☠️ Remove Player', desc: 'Remove any player from the game' },
+                    { id: 'admin-give-money', title: '💰 Give Money', desc: 'Give yourself money' }
+                ];
+
+                html += '<div class="admin-header">👑 ADMIN COMMANDS</div>';
+                html += adminCommands.map(cmd => `
+                    <button class="choice-btn admin-btn" data-cmd="${cmd.id}">
+                        <div class="choice-title">${cmd.title}</div>
+                        <div class="choice-desc">${cmd.desc}</div>
+                    </button>
+                `).join('');
+            }
+
+            container.innerHTML = html;
+
+            // Add event listeners for normal choices
+            container.querySelectorAll('.choice-btn:not(.admin-btn)').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const choiceId = btn.getAttribute('data-choice');
                     const choice = choices.find(c => c.id === choiceId);
@@ -1952,6 +1966,16 @@
                     }
                 });
             });
+
+            // Add event listeners for admin commands
+            if (gameState.isAdmin) {
+                container.querySelectorAll('.admin-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const cmdId = btn.getAttribute('data-cmd');
+                        openAdminModal(cmdId);
+                    });
+                });
+            }
         }
 
         // AI makes decisions
@@ -2919,7 +2943,7 @@
                     }
                     break;
                 case 'badmouth-fail':
-                    if (attacker) attacker.job = { ...unemployed };
+                    if (attacker) attacker.happiness = Math.max(0, attacker.happiness - 50);
                     if (iWasTarget) {
                         logEvent(`${attackerDisplayName} tried to get you fired but their lies were exposed!`, 'positive');
                     }
@@ -2979,20 +3003,19 @@
                     }
                     break;
                 case 'jobsteal-success':
-                    if (target && attacker) {
-                        const stolenJob = { ...target.job };
-                        target.job = { ...unemployed };
-                        attacker.job = stolenJob;
+                    // Attacker gets a copy of the job, target keeps theirs
+                    if (attacker && data.jobData) {
+                        attacker.job = { ...data.jobData };
                     }
                     if (iWasTarget) {
-                        logEvent(`${attackerDisplayName} poached your job! You're now unemployed!`, 'negative');
+                        logEvent(`${attackerDisplayName} poached a position like yours at ${data.jobData?.company || 'your company'}!`, 'neutral');
                     }
                     break;
                 case 'jobsteal-fail':
-                    if (target) target.job = { ...unemployed };
-                    if (attacker) attacker.job = { ...unemployed };
+                    // Attacker just loses happiness, target unaffected
+                    if (attacker) attacker.happiness = Math.max(0, attacker.happiness - 30);
                     if (iWasTarget) {
-                        logEvent(`${attackerDisplayName} tried to steal your job - you both got fired!`, 'negative');
+                        logEvent(`${attackerDisplayName} tried to poach your position but failed!`, 'positive');
                     }
                     break;
                 case 'bailout':
@@ -3003,6 +3026,35 @@
                     if (attacker) attacker.money -= data.cost;
                     if (iWasTarget) {
                         logEvent(`${attackerDisplayName} paid $${data.cost} to bail you out of jail!`, 'positive');
+                    }
+                    break;
+                case 'admin':
+                    // Apply admin action
+                    switch (data.adminAction) {
+                        case 'bankrupt':
+                            if (target) { target.money = 0; target.investments = 0; }
+                            break;
+                        case 'set-money':
+                            if (target) target.money = data.value;
+                            break;
+                        case 'set-health':
+                            if (target) target.health = Math.min(100, Math.max(0, data.value));
+                            break;
+                        case 'set-happiness':
+                            if (target) target.happiness = Math.min(100, Math.max(0, data.value));
+                            break;
+                        case 'set-energy':
+                            if (target) target.energy = Math.min(100, Math.max(0, data.value));
+                            break;
+                        case 'set-skills':
+                            if (target) target.skills = Math.min(100, Math.max(0, data.value));
+                            break;
+                        case 'remove':
+                            if (target) { target.isDead = true; target.health = 0; }
+                            break;
+                    }
+                    if (iWasTarget) {
+                        logEvent(`Admin modified your stats!`, 'neutral');
                     }
                     break;
             }
@@ -4124,10 +4176,9 @@
                     });
                 }
             } else {
-                // Fail - YOU get fired
-                const oldJob = gameState.player.job.title;
-                gameState.player.job = { ...unemployed };
-                logEvent(`Backfired! Your lies were exposed and you were fired from ${oldJob}!`, 'negative');
+                // Fail - humiliated, lose 50 happiness
+                gameState.player.happiness = Math.max(0, gameState.player.happiness - 50);
+                logEvent(`Backfired! Your lies were exposed and you're humiliated! -50 happiness`, 'negative');
 
                 if (gameState.gameMode !== 'single') {
                     sendSabotageToHost({
@@ -4241,11 +4292,11 @@
         // Sabotage descriptions for the dropdown
         const sabotageDescriptions = {
             'steal': '🦹 <b>Steal Money</b><br>Take cash directly from another player. Higher amounts = lower success chance. If caught, you go to jail!',
-            'badmouth': '🗣️ <b>Bad Mouth to Boss</b><br>Spread lies to get someone fired. Requires you AND target to have jobs. If it backfires, YOU get fired instead!',
+            'badmouth': '🗣️ <b>Bad Mouth to Boss</b><br>Spread lies to get someone fired. Target must have a job. If it backfires, you lose 50 happiness from humiliation!',
             'spread-rumors': '💬 <b>Spread Rumors</b><br>Start nasty gossip about someone to tank their happiness. 70% success rate, reduces their happiness by 20-40.',
             'frame': '🚔 <b>Frame for Crime</b><br>Plant evidence to get them arrested. Only 40% success. If you fail, YOU go to jail instead!',
             'food-poison': '🍔 <b>Poison Food</b><br>Slip something in their lunch. Costs $50. 60% success. Gives them food poisoning for 3 weeks!',
-            'job-steal': '💼 <b>Poach Job</b><br>Undermine someone and steal their position. Only 35% success. If you fail, you BOTH lose your jobs!'
+            'job-steal': '💼 <b>Poach Job</b><br>Get a position like theirs! They keep their job too. Only 35% success. If you fail, -30 happiness.'
         };
 
         // Open unified sabotage modal
@@ -4280,10 +4331,6 @@
                     openStealModal();
                     break;
                 case 'badmouth':
-                    if (gameState.player.job.salary === 0) {
-                        logEvent('You need a job first to bad mouth someone!', 'negative');
-                        return;
-                    }
                     openBadmouthModal();
                     break;
                 case 'spread-rumors':
@@ -4617,26 +4664,23 @@
             closeJobStealModal();
 
             if (Math.random() < successChance) {
-                // Success - you steal their job
-                const stolenJob = { ...target.job };
-                target.job = { ...unemployed };
-                gameState.player.job = stolenJob;
-                logEvent(`You successfully poached ${getDisplayName(targetName)}'s job! You're now ${stolenJob.title} at ${stolenJob.company}!`, 'positive');
+                // Success - you get their job, they keep theirs too
+                const newJob = { ...target.job };
+                gameState.player.job = newJob;
+                logEvent(`You successfully poached a position like ${getDisplayName(targetName)}'s! You're now ${newJob.title} at ${newJob.company}!`, 'positive');
 
                 if (gameState.gameMode !== 'single') {
                     sendSabotageToHost({
                         action: 'jobsteal-success',
                         targetName: targetName,
-                        attackerName: gameState.player.name
+                        attackerName: gameState.player.name,
+                        jobData: newJob
                     });
                 }
             } else {
-                // Fail - you BOTH lose your jobs
-                const yourOldJob = gameState.player.job.title;
-                const theirOldJob = target.job.title;
-                gameState.player.job = { ...unemployed };
-                target.job = { ...unemployed };
-                logEvent(`Your scheme was exposed! Both you (${yourOldJob}) and ${getDisplayName(targetName)} (${theirOldJob}) were fired!`, 'negative');
+                // Fail - you're humiliated, lose happiness
+                gameState.player.happiness = Math.max(0, gameState.player.happiness - 30);
+                logEvent(`Your scheme was exposed! You're humiliated. -30 happiness`, 'negative');
 
                 if (gameState.gameMode !== 'single') {
                     sendSabotageToHost({
@@ -4779,6 +4823,17 @@
                     target.health = 0;
                     logEvent(`ADMIN: Removed ${targetName} from the game!`, 'negative');
                     break;
+            }
+
+            // Sync admin action in multiplayer
+            if (gameState.gameMode !== 'single') {
+                sendSabotageToHost({
+                    action: 'admin',
+                    adminAction: action,
+                    targetName: targetName,
+                    value: value,
+                    attackerName: gameState.player.name
+                });
             }
 
             closeAdminModal();
