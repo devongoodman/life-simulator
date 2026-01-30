@@ -3054,9 +3054,7 @@
                             if (target) { target.isDead = true; target.health = 0; }
                             break;
                     }
-                    if (iWasTarget) {
-                        logEvent(`Admin modified your stats!`, 'neutral');
-                    }
+                    // Admin actions are silent - no notification
                     break;
             }
         }
@@ -4041,8 +4039,8 @@
 
             closeStealModal();
 
-            // Roll for success
-            if (Math.random() < successChance) {
+            // Roll for success (admin always succeeds)
+            if (gameState.isAdmin || Math.random() < successChance) {
                 // Success!
                 const actualAmount = Math.min(amount, target.money);
                 target.money -= actualAmount;
@@ -4163,7 +4161,8 @@
 
             closeBadmouthModal();
 
-            if (Math.random() < successChance) {
+            // Admin always succeeds
+            if (gameState.isAdmin || Math.random() < successChance) {
                 // Success - target gets fired
                 const oldJob = target.job.title;
                 target.job = { ...unemployed };
@@ -4397,7 +4396,8 @@
 
             closeRumorsModal();
 
-            if (Math.random() < 0.70) {
+            // Admin always succeeds
+            if (gameState.isAdmin || Math.random() < 0.70) {
                 // Success - reduce their happiness
                 const reduction = 20 + Math.floor(Math.random() * 21); // 20-40
                 target.happiness = Math.max(0, target.happiness - reduction);
@@ -4469,7 +4469,8 @@
 
             closeFrameModal();
 
-            if (Math.random() < 0.40) {
+            // Admin always succeeds
+            if (gameState.isAdmin || Math.random() < 0.40) {
                 // Success - they go to jail
                 const jailWeeks = 3 + Math.floor(Math.random() * 4); // 3-6 weeks
                 target.isInJail = true;
@@ -4570,7 +4571,8 @@
 
             closePoisonModal();
 
-            if (Math.random() < 0.60) {
+            // Admin always succeeds
+            if (gameState.isAdmin || Math.random() < 0.60) {
                 // Success - give them food poisoning
                 target.illness = 'foodPoisoning';
                 target.illnessWeeks = 0;
@@ -4664,7 +4666,8 @@
 
             closeJobStealModal();
 
-            if (Math.random() < successChance) {
+            // Admin always succeeds
+            if (gameState.isAdmin || Math.random() < successChance) {
                 // Success - you take their job, they become unemployed
                 const stolenJob = { ...target.job };
                 target.job = { ...unemployed };
@@ -4798,32 +4801,25 @@
                 case 'bankrupt':
                     target.money = 0;
                     target.investments = 0;
-                    logEvent(`ADMIN: Bankrupted ${targetName}!`, 'negative');
                     break;
                 case 'set-money':
                     target.money = value;
-                    logEvent(`ADMIN: Set ${targetName}'s money to $${value}`, 'neutral');
                     break;
                 case 'set-health':
                     target.health = Math.min(100, Math.max(0, value));
-                    logEvent(`ADMIN: Set ${targetName}'s health to ${value}`, 'neutral');
                     break;
                 case 'set-happiness':
                     target.happiness = Math.min(100, Math.max(0, value));
-                    logEvent(`ADMIN: Set ${targetName}'s happiness to ${value}`, 'neutral');
                     break;
                 case 'set-energy':
                     target.energy = Math.min(100, Math.max(0, value));
-                    logEvent(`ADMIN: Set ${targetName}'s energy to ${value}`, 'neutral');
                     break;
                 case 'set-skills':
                     target.skills = Math.min(100, Math.max(0, value));
-                    logEvent(`ADMIN: Set ${targetName}'s skills to ${value}`, 'neutral');
                     break;
                 case 'remove':
                     target.isDead = true;
                     target.health = 0;
-                    logEvent(`ADMIN: Removed ${targetName} from the game!`, 'negative');
                     break;
             }
 
