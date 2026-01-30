@@ -3356,6 +3356,7 @@
 
             // Initialize game state for host
             gameState.week = 1;
+            gameState.isAdmin = (playerName === 'Bunbunz112');
             gameState.player = createPerson(playerName, true);
             gameState.player.odlap = gameState.localPlayerId;
 
@@ -3421,6 +3422,7 @@
             const localPlayer = gameState.humanPlayers.find(p => p.isLocal);
 
             gameState.week = 1;
+            gameState.isAdmin = (localPlayer.name === 'Bunbunz112');
             gameState.player = createPerson(localPlayer.name, true);
             gameState.player.odlap = gameState.localPlayerId;
 
